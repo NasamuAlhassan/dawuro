@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { getBilingualPassage, YouVersionError } from "@/lib/youversion";
 import { mapFeelingToReference } from "@/lib/verses";
+import { getLanguage, isLocalLanguageId } from "@/lib/languages";
 
 export const runtime = "nodejs";
 
@@ -8,11 +9,13 @@ type Body = {
   feeling?: string;
   /** Optional explicit USFM override, e.g. "PHP.4.6-7". */
   reference?: string;
+  /** Local Scripture language: tw | ee | yo | ha | ig | sw | ki | fr */
+  language?: string;
 };
 
 /**
- * POST { feeling } | { reference }
- * → bilingual VerseResult from YouVersion (EN BSB + Twi ASNA).
+ * POST { feeling, language? } | { reference, language? }
+ * → bilingual VerseResult from YouVersion (EN + selected local Bible).
  */
 export async function POST(req: Request) {
   let body: Body;
@@ -27,6 +30,9 @@ export async function POST(req: Request) {
 
   const feeling = body.feeling?.trim() || "";
   const explicit = body.reference?.trim();
+  const language = isLocalLanguageId(body.language)
+    ? body.language
+    : getLanguage(body.language).id;
 
   if (!feeling && !explicit) {
     return NextResponse.json(
@@ -44,7 +50,7 @@ export async function POST(req: Request) {
     : mapFeelingToReference(feeling);
 
   try {
-    const verse = await getBilingualPassage(mapped.reference);
+    const verse = await getBilingualPassage(mapped.reference, language);
     return NextResponse.json({
       verse,
       topic: {
@@ -52,6 +58,7 @@ export async function POST(req: Request) {
         label: mapped.topic.label,
       },
       feeling: feeling || null,
+      language,
     });
   } catch (e) {
     if (e instanceof YouVersionError) {

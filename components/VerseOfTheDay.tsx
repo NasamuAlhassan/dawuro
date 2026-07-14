@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import type { VerseResult } from "@/lib/types";
+import type { LocalLanguageId } from "@/lib/languages";
 import { VerseCard } from "@/components/VerseCard";
 import { ShareSheet } from "@/components/ShareSheet";
 
@@ -12,31 +13,42 @@ type VotdResponse = {
   code?: string;
 };
 
+type Props = {
+  language: LocalLanguageId;
+};
+
 /**
- * Home VOTD widget — loads on open from /api/votd.
- * "Share as voice note" produces image + Twi audio for WhatsApp.
+ * Home VOTD widget — reloads when Scripture language changes.
  */
-export function VerseOfTheDay() {
+export function VerseOfTheDay({ language }: Props) {
   const [data, setData] = useState<VotdResponse | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     let cancelled = false;
+    setLoading(true);
+    setError(null);
     (async () => {
       try {
-        const res = await fetch("/api/votd");
+        const res = await fetch(
+          `/api/votd?language=${encodeURIComponent(language)}`,
+        );
         const json = (await res.json()) as VotdResponse & {
           error?: string;
         };
         if (cancelled) return;
         if (!res.ok) {
           setError(json.error || "Could not load Verse of the Day.");
+          setData(null);
           return;
         }
         setData(json);
       } catch {
-        if (!cancelled) setError("Could not load Verse of the Day.");
+        if (!cancelled) {
+          setError("Could not load Verse of the Day.");
+          setData(null);
+        }
       } finally {
         if (!cancelled) setLoading(false);
       }
@@ -44,7 +56,7 @@ export function VerseOfTheDay() {
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [language]);
 
   if (loading) {
     return (
@@ -66,7 +78,8 @@ export function VerseOfTheDay() {
           Verse of the Day
         </p>
         <p className="mt-3 text-sm text-ink-soft">{error}</p>
-        {error.toLowerCase().includes("biblica") && (
+        {(error.toLowerCase().includes("biblica") ||
+          error.toLowerCase().includes("license")) && (
           <p className="mt-2 text-xs text-ink-soft">
             Open{" "}
             <a

@@ -3,9 +3,24 @@
 **Scripture in the voice of your people.**
 
 A mobile-first web app for the *Scripture in New Frontiers* hackathon (YouVersion + Gloo AI).  
-Speak or type a feeling in English or Twi → receive a real Bible verse in **both languages** →  
-hear it in Twi → get a short faith-safe reflection → share an image + audio card on WhatsApp.  
+Speak or type a feeling → receive a real Bible verse in **English + your language** →  
+hear it aloud (where TTS is available) → get a short faith-safe reflection → share an image + audio card on WhatsApp.  
 **The receiver needs no app.**
+
+### Scripture languages (YouVersion)
+
+| Code | Language | Bible | Hear aloud (Khaya TTS) |
+|------|----------|-------|-------------------------|
+| `tw` | Asante Twi | ASNA #2094 | Yes |
+| `ee` | Ewe | ECS #1613 | Yes |
+| `yo` | Yoruba | YCB #911 | Text only |
+| `ha` | Hausa | HCB #1614 | Text only |
+| `ig` | Igbo | ICB #1624 | Text only |
+| `sw` | Kiswahili | NEN #1627 | Text only |
+| `ki` | Gĩkũyũ (Kikuyu) | GKY #1622 | Yes |
+| `fr` | French | LSG #93 | Text only |
+
+English (BSB) always appears as the companion side. **Scripture is never machine-translated.**
 
 ---
 

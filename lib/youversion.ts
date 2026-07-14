@@ -2,38 +2,21 @@
  * YouVersion Platform API — server only.
  * Docs: https://developers.youversion.com/api/bibles
  *
- * Twi Bibles (ASNA/AKNA) require accepting the Biblica Fast-track license
- * at platform.youversion.com. English BSB works without it.
+ * Local-language Bibles (mostly Biblica) require accepting the Biblica
+ * Fast-track license at platform.youversion.com. English BSB works without it.
  */
 
 import { requireYouVersionEnv } from "@/lib/env";
 import { usfmToHuman } from "@/lib/verses";
 import type { VerseResult } from "@/lib/types";
+import {
+  ENGLISH_BIBLE,
+  getLanguage,
+  type LocalLanguageId,
+  type LanguageConfig,
+} from "@/lib/languages";
 
 const YVP_BASE = "https://api.youversion.com/v1";
-
-/** Confirmed Platform IDs (verified against live /v1/bibles). */
-export const BIBLE_VERSIONS = {
-  /** Berean Standard Bible — public domain; available without Biblica license. */
-  english: {
-    id: 3034,
-    abbreviation: "BSB",
-    title: "Berean Standard Bible",
-  },
-  /** Asante Twi Nkwa Asɛm — Biblica; needs Fast-track license agreement. */
-  twi: {
-    id: 2094,
-    abbreviation: "ASNA",
-    title: "Asante Twi Nkwa Asɛm",
-    languageTag: "ak",
-  },
-  /** Akuapem Twi alternate. */
-  twiAlt: {
-    id: 1631,
-    abbreviation: "AKNA",
-    title: "Akuapem Twi Nkwa Asɛm",
-  },
-} as const;
 
 export class YouVersionError extends Error {
   status: number;
@@ -72,10 +55,9 @@ function headers(): HeadersInit {
   return { "X-YVP-App-Key": YVP_APP_KEY };
 }
 
-async function yvpFetch<T>(path: string): Promise<T> {
+async function yvpFetch<T>(path: string, languageHint?: string): Promise<T> {
   const res = await fetch(`${YVP_BASE}${path}`, {
     headers: headers(),
-    // Passages are stable; allow short CDN-ish caching on the platform side.
     next: { revalidate: 3600 },
   });
 
@@ -89,8 +71,9 @@ async function yvpFetch<T>(path: string): Promise<T> {
     }
 
     if (res.status === 403) {
+      const lang = languageHint ? ` (${languageHint})` : "";
       throw new YouVersionError(
-        `Twi Scripture is blocked for this app key. Accept the Biblica Fast-track Bible License at platform.youversion.com (Licenses → Fast-track), then retry. (${detail || "403"})`,
+        `Scripture access blocked${lang}. Accept the Biblica Fast-track Bible License at platform.youversion.com (Licenses → Fast-track), then retry. (${detail || "403"})`,
         403,
         "LICENSE_REQUIRED",
       );
@@ -109,10 +92,12 @@ async function yvpFetch<T>(path: string): Promise<T> {
 export async function getPassage(
   versionId: number,
   usfm: string,
+  languageHint?: string,
 ): Promise<PassageResponse> {
   const encoded = encodeURIComponent(usfm);
   return yvpFetch<PassageResponse>(
     `/bibles/${versionId}/passages/${encoded}?format=text`,
+    languageHint,
   );
 }
 
@@ -138,57 +123,69 @@ export async function getVerseOfTheDayReference(
   return data.passage_id;
 }
 
-let copyrightCache: { en?: string; twi?: string } = {};
+const copyrightCache = new Map<number, string>();
 
-async function getCopyrights(): Promise<{ en?: string; twi?: string }> {
-  if (copyrightCache.en && copyrightCache.twi) return copyrightCache;
+async function resolveCopyright(
+  versionId: number,
+  fallback: string,
+): Promise<string> {
+  const hit = copyrightCache.get(versionId);
+  if (hit) return hit;
   try {
-    const [en, twi] = await Promise.all([
-      getBibleMeta(BIBLE_VERSIONS.english.id),
-      getBibleMeta(BIBLE_VERSIONS.twi.id),
-    ]);
-    copyrightCache = {
-      en: en.copyright || BIBLE_VERSIONS.english.title,
-      twi: twi.copyright || "Biblica © — Asante Twi Nkwa Asɛm",
-    };
+    const meta = await getBibleMeta(versionId);
+    const raw = meta.copyright || meta.title || fallback;
+    const short = shortCopyright(raw, fallback);
+    copyrightCache.set(versionId, short);
+    return short;
   } catch {
-    copyrightCache = {
-      en: copyrightCache.en || BIBLE_VERSIONS.english.title,
-      twi: copyrightCache.twi || "Biblica © — Asante Twi Nkwa Asɛm",
-    };
+    return fallback;
   }
-  return copyrightCache;
 }
 
 /**
- * Fetch the same USFM reference in English (BSB) and Twi (ASNA).
+ * Fetch the same USFM reference in English (BSB) + selected local language.
  * Scripture text is never machine-translated — both come from YouVersion.
  */
 export async function getBilingualPassage(
   usfm: string,
+  localLanguageId: LocalLanguageId | string = "tw",
 ): Promise<VerseResult> {
-  const [en, twi, copyrights] = await Promise.all([
-    getPassage(BIBLE_VERSIONS.english.id, usfm),
-    getPassage(BIBLE_VERSIONS.twi.id, usfm),
-    getCopyrights(),
+  const lang = getLanguage(localLanguageId);
+
+  const [en, local, enCopyright, localCopyright] = await Promise.all([
+    getPassage(ENGLISH_BIBLE.id, usfm, "English"),
+    getPassage(lang.bibleId, usfm, lang.name),
+    resolveCopyright(ENGLISH_BIBLE.id, ENGLISH_BIBLE.copyrightFallback),
+    resolveCopyright(lang.bibleId, lang.copyrightFallback),
   ]);
 
   const human =
-    en.reference || twi.reference || usfmToHuman(usfm);
+    en.reference || local.reference || usfmToHuman(usfm);
+
+  const localSide = {
+    languageId: lang.id,
+    label: lang.label,
+    versionId: String(lang.bibleId),
+    text: cleanPassageText(local.content),
+    copyright: localCopyright,
+  };
+
+  const englishSide = {
+    languageId: "en",
+    label: "English",
+    versionId: String(ENGLISH_BIBLE.id),
+    text: cleanPassageText(en.content),
+    copyright: enCopyright,
+  };
 
   return {
     reference: usfm,
     humanReference: human,
-    english: {
-      versionId: String(BIBLE_VERSIONS.english.id),
-      text: cleanPassageText(en.content),
-      copyright: shortCopyright(copyrights.en, "BSB"),
-    },
-    twi: {
-      versionId: String(BIBLE_VERSIONS.twi.id),
-      text: cleanPassageText(twi.content),
-      copyright: shortCopyright(copyrights.twi, "Biblica © ASNA"),
-    },
+    english: englishSide,
+    local: localSide,
+    localLanguageId: lang.id,
+    // Backward-compatible alias while components migrate
+    twi: localSide,
   };
 }
 
@@ -213,25 +210,37 @@ function shortCopyright(
 }
 
 /**
- * Probe whether Twi passage text is readable with the current app key.
- * Used by /api/health so the human knows to accept the Biblica license.
+ * Probe whether a local-language Bible is readable with the current app key.
  */
-export async function probeTwiAccess(): Promise<{
-  ok: boolean;
-  message: string;
-}> {
+export async function probeLanguageAccess(
+  languageId: LocalLanguageId | string = "tw",
+): Promise<{ ok: boolean; message: string; language: LanguageConfig }> {
+  const lang = getLanguage(languageId);
   try {
-    await getPassage(BIBLE_VERSIONS.twi.id, "JHN.3.16");
-    return { ok: true, message: "Twi (ASNA) passage access OK" };
+    await getPassage(lang.bibleId, "JHN.3.16", lang.name);
+    return {
+      ok: true,
+      message: `${lang.name} (${lang.abbreviation}) passage access OK`,
+      language: lang,
+    };
   } catch (e) {
     if (e instanceof YouVersionError && e.status === 403) {
       return {
         ok: false,
-        message:
-          "Twi (ASNA) blocked — accept the Biblica Fast-track Bible License at platform.youversion.com (Licenses / Fast-track).",
+        message: `${lang.name} blocked — accept the Biblica Fast-track Bible License at platform.youversion.com.`,
+        language: lang,
       };
     }
     const msg = e instanceof Error ? e.message : "Unknown error";
-    return { ok: false, message: msg };
+    return { ok: false, message: msg, language: lang };
   }
+}
+
+/** @deprecated Use probeLanguageAccess */
+export async function probeTwiAccess(): Promise<{
+  ok: boolean;
+  message: string;
+}> {
+  const r = await probeLanguageAccess("tw");
+  return { ok: r.ok, message: r.message };
 }

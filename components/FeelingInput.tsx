@@ -1,7 +1,8 @@
 "use client";
 
 import { useState } from "react";
-import type { InputLanguage } from "@/lib/types";
+import type { InputLanguageId } from "@/lib/languages";
+import { INPUT_LANGUAGES, getInputLanguage } from "@/lib/languages";
 import { SUGGESTED_FEELINGS } from "@/lib/verses";
 import { MicRecorder } from "@/components/MicRecorder";
 
@@ -17,7 +18,8 @@ type Props = {
  */
 export function FeelingInput({ onSubmit, loading, disabled }: Props) {
   const [value, setValue] = useState("");
-  const [language, setLanguage] = useState<InputLanguage>("en");
+  const [language, setLanguage] = useState<InputLanguageId>("en");
+  const input = getInputLanguage(language);
 
   function submit(feeling: string) {
     const t = feeling.trim();
@@ -39,28 +41,20 @@ export function FeelingInput({ onSubmit, loading, disabled }: Props) {
           role="group"
           aria-label="Input language"
         >
-          <button
-            type="button"
-            onClick={() => setLanguage("en")}
-            className={`rounded-full px-2.5 py-1 ${
-              language === "en"
-                ? "bg-brand text-white"
-                : "text-ink-soft hover:text-ink"
-            }`}
-          >
-            EN
-          </button>
-          <button
-            type="button"
-            onClick={() => setLanguage("tw")}
-            className={`rounded-full px-2.5 py-1 ${
-              language === "tw"
-                ? "bg-brand text-white"
-                : "text-ink-soft hover:text-ink"
-            }`}
-          >
-            Twi
-          </button>
+          {INPUT_LANGUAGES.map((opt) => (
+            <button
+              key={opt.id}
+              type="button"
+              onClick={() => setLanguage(opt.id)}
+              className={`rounded-full px-2.5 py-1 ${
+                language === opt.id
+                  ? "bg-brand text-white"
+                  : "text-ink-soft hover:text-ink"
+              }`}
+            >
+              {opt.label}
+            </button>
+          ))}
         </div>
       </div>
 
@@ -73,11 +67,7 @@ export function FeelingInput({ onSubmit, loading, disabled }: Props) {
           onKeyDown={(e) => {
             if (e.key === "Enter") submit(value);
           }}
-          placeholder={
-            language === "tw"
-              ? "e.g. me yɛ suro"
-              : "e.g. I'm anxious about my exams"
-          }
+          placeholder={input.placeholder}
           disabled={loading || disabled}
           className="min-h-12 flex-1 rounded-xl border border-line bg-surface px-4 text-base text-ink placeholder:text-ink-soft/70 outline-none ring-brand/30 focus:ring-2 disabled:opacity-60"
           autoComplete="off"

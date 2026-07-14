@@ -1,24 +1,32 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import type { LocalLanguageId } from "@/lib/languages";
+import { getLanguage } from "@/lib/languages";
 
 type Props = {
-  /** Twi text to synthesize when no pro audio URL. */
-  twiText: string;
+  /** Local-language text to synthesize. */
+  text: string;
+  language: LocalLanguageId;
   /** Optional YouVersion professional audio URL. */
   proAudioUrl?: string;
   label?: string;
 };
 
 /**
- * Tap-to-play Twi audio. Fetches /api/speak (Khaya TTS) or uses pro URL.
+ * Tap-to-play local-language audio. Fetches /api/speak (Khaya TTS) or uses pro URL.
  * Never autoplays. Graceful failure leaves the verse readable.
  */
 export function AudioPlayer({
-  twiText,
+  text,
+  language,
   proAudioUrl,
-  label = "Hear in Twi",
+  label,
 }: Props) {
+  const lang = getLanguage(language);
+  const playLabel = label || `Hear in ${lang.label}`;
+  const canTts = Boolean(lang.khayaTts);
+
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const objectUrlRef = useRef<string | null>(null);
   const [loading, setLoading] = useState(false);
@@ -27,7 +35,6 @@ export function AudioPlayer({
   const [readyUrl, setReadyUrl] = useState<string | null>(proAudioUrl ?? null);
 
   useEffect(() => {
-    // Reset when verse changes
     setReadyUrl(proAudioUrl ?? null);
     setError(null);
     setPlaying(false);
@@ -39,13 +46,21 @@ export function AudioPlayer({
       URL.revokeObjectURL(objectUrlRef.current);
       objectUrlRef.current = null;
     }
-  }, [twiText, proAudioUrl]);
+  }, [text, language, proAudioUrl]);
 
   useEffect(() => {
     return () => {
       if (objectUrlRef.current) URL.revokeObjectURL(objectUrlRef.current);
     };
   }, []);
+
+  if (!canTts && !proAudioUrl) {
+    return (
+      <p className="text-xs text-ink-soft">
+        Audio not available for {lang.name} yet — you can still read the verse.
+      </p>
+    );
+  }
 
   async function ensureAudio(): Promise<string | null> {
     if (readyUrl) return readyUrl;
@@ -60,7 +75,7 @@ export function AudioPlayer({
       const res = await fetch("/api/speak", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ twiText }),
+        body: JSON.stringify({ text, language }),
       });
 
       const contentType = res.headers.get("content-type") || "";
@@ -133,16 +148,16 @@ export function AudioPlayer({
       <button
         type="button"
         onClick={toggle}
-        disabled={loading || !twiText}
+        disabled={loading || !text}
         className="inline-flex min-h-11 w-full items-center justify-center gap-2 rounded-xl border border-line bg-gold-soft/60 px-4 text-sm font-semibold text-ink transition hover:bg-gold-soft disabled:cursor-not-allowed disabled:opacity-50"
-        aria-label={playing ? "Pause Twi audio" : label}
+        aria-label={playing ? "Pause audio" : playLabel}
       >
         {loading ? (
           <span>Preparing audio…</span>
         ) : playing ? (
           <span>Pause</span>
         ) : (
-          <span>▶ {label}</span>
+          <span>▶ {playLabel}</span>
         )}
       </button>
       {error && (

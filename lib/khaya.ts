@@ -1,11 +1,13 @@
 /**
- * GhanaNLP Khaya API — Twi TTS / ASR / translate.
+ * GhanaNLP Khaya API — multi-language TTS / ASR / translate.
  * Server only. Header: Ocp-Apim-Subscription-Key
  *
  * Verified live:
- *   POST https://translation-api.ghananlp.org/tts/v1/synthesize  { text, language: "tw" } → WAV
- *   POST https://translation-api.ghananlp.org/v1/translate        { in, lang: "en-tw" } → string
- * ASR path (community wrapper): asr/v1/transcribe with raw audio + ?language=tw
+ *   TTS:  language codes tw, ee, ki → WAV
+ *   Translate: en-tw, en-ee, en-yor, en-gaa, en-dag, en-fat
+ *   ASR: language query param (tw, ee, …)
+ *
+ * Never use translate for Scripture — reflections only.
  */
 
 import { createHash } from "crypto";
@@ -39,7 +41,11 @@ function apiKey(): string {
   return key;
 }
 
-function withTimeout<T>(promise: Promise<T>, ms: number, label: string): Promise<T> {
+function withTimeout<T>(
+  promise: Promise<T>,
+  ms: number,
+  label: string,
+): Promise<T> {
   return new Promise((resolve, reject) => {
     const t = setTimeout(
       () => reject(new KhayaError(`${label} timed out after ${ms}ms`, 504)),
@@ -58,20 +64,25 @@ function withTimeout<T>(promise: Promise<T>, ms: number, label: string): Promise
 }
 
 /**
- * Synthesize Twi speech. Returns WAV bytes (verified content-type audio/wav).
- * Cached by content hash.
+ * Synthesize speech in a Khaya-supported language.
+ * Returns WAV bytes. Cached by language + content hash.
  */
-export async function synthesizeTwi(
+export async function synthesizeSpeech(
   text: string,
+  languageCode: string,
   timeoutMs = DEFAULT_TIMEOUT_MS,
 ): Promise<{ buffer: Buffer; contentType: string }> {
   const cleaned = text.trim();
+  const lang = languageCode.trim();
   if (!cleaned) {
     throw new KhayaError("No text provided for speech synthesis.", 400);
   }
+  if (!lang) {
+    throw new KhayaError("No language code for speech synthesis.", 400);
+  }
 
   const cacheKey = createHash("sha256")
-    .update(`tts:tw:${cleaned}`)
+    .update(`tts:${lang}:${cleaned}`)
     .digest("hex");
   const cached = getCachedAudio(cacheKey);
   if (cached) {
@@ -85,7 +96,7 @@ export async function synthesizeTwi(
         "Ocp-Apim-Subscription-Key": apiKey(),
         "Content-Type": "application/json",
       },
-      body: JSON.stringify({ text: cleaned, language: "tw" }),
+      body: JSON.stringify({ text: cleaned, language: lang }),
     }),
     timeoutMs,
     "Khaya TTS",
@@ -107,26 +118,38 @@ export async function synthesizeTwi(
   const arrayBuffer = await res.arrayBuffer();
   const buffer = Buffer.from(arrayBuffer);
   if (buffer.byteLength < 100) {
-    throw new KhayaError("Khaya TTS returned empty or invalid audio.", 502);
+    throw new KhayaError(
+      `Khaya TTS returned empty or invalid audio for language "${lang}".`,
+      502,
+    );
   }
 
-  // Live responses are RIFF/WAVE IEEE float mono 16kHz
-  const contentType =
-    res.headers.get("content-type") || "audio/wav";
-
+  const contentType = res.headers.get("content-type") || "audio/wav";
   setCachedAudio(cacheKey, buffer, contentType);
   return { buffer, contentType };
 }
 
-/**
- * Translate English → Twi. For reflections only — never Scripture.
- */
-export async function translateEnToTwi(
+/** @deprecated Use synthesizeSpeech(text, "tw") */
+export async function synthesizeTwi(
   text: string,
+  timeoutMs = DEFAULT_TIMEOUT_MS,
+): Promise<{ buffer: Buffer; contentType: string }> {
+  return synthesizeSpeech(text, "tw", timeoutMs);
+}
+
+/**
+ * Translate English → local language via Khaya.
+ * For reflections only — never Scripture.
+ * @param toCode Khaya target code (tw, ee, yor, gaa, …)
+ */
+export async function translateFromEnglish(
+  text: string,
+  toCode: string,
   timeoutMs = DEFAULT_TIMEOUT_MS,
 ): Promise<string> {
   const cleaned = text.trim();
   if (!cleaned) return "";
+  const langPair = `en-${toCode}`;
 
   const res = await withTimeout(
     fetch(TRANSLATE_URL, {
@@ -135,7 +158,7 @@ export async function translateEnToTwi(
         "Ocp-Apim-Subscription-Key": apiKey(),
         "Content-Type": "application/json",
       },
-      body: JSON.stringify({ in: cleaned.slice(0, 1000), lang: "en-tw" }),
+      body: JSON.stringify({ in: cleaned.slice(0, 1000), lang: langPair }),
     }),
     timeoutMs,
     "Khaya translate",
@@ -153,11 +176,20 @@ export async function translateEnToTwi(
   return String(data);
 }
 
+/** @deprecated Use translateFromEnglish(text, "tw") */
+export async function translateEnToTwi(
+  text: string,
+  timeoutMs = DEFAULT_TIMEOUT_MS,
+): Promise<string> {
+  return translateFromEnglish(text, "tw", timeoutMs);
+}
+
 /**
- * Transcribe Twi audio (raw bytes). Content-Type depends on recording format.
+ * Transcribe audio for a Khaya ASR language code.
  */
-export async function transcribeTwi(
+export async function transcribeSpeech(
   audio: Buffer,
+  languageCode: string,
   contentType = "audio/wav",
   timeoutMs = DEFAULT_TIMEOUT_MS,
 ): Promise<string> {
@@ -166,7 +198,7 @@ export async function transcribeTwi(
   }
 
   const url = new URL(ASR_URL);
-  url.searchParams.set("language", "tw");
+  url.searchParams.set("language", languageCode || "tw");
 
   const res = await withTimeout(
     fetch(url.toString(), {
@@ -203,4 +235,13 @@ export async function transcribeTwi(
     if (typeof text === "string") return text.trim();
   }
   return String(data).trim();
+}
+
+/** @deprecated Use transcribeSpeech(audio, "tw", contentType) */
+export async function transcribeTwi(
+  audio: Buffer,
+  contentType = "audio/wav",
+  timeoutMs = DEFAULT_TIMEOUT_MS,
+): Promise<string> {
+  return transcribeSpeech(audio, "tw", contentType, timeoutMs);
 }

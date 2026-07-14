@@ -2,39 +2,49 @@
 
 import type { VerseResult } from "@/lib/types";
 import { AudioPlayer } from "@/components/AudioPlayer";
+import { getLanguage } from "@/lib/languages";
 
 type Props = {
   verse: VerseResult;
   className?: string;
-  /** Show Twi play control (Phase 3). */
   showAudio?: boolean;
 };
 
 /**
- * On-screen verse: Twi primacy, English support, reference + publisher credit.
+ * On-screen verse: local language primacy, English support, attribution.
  */
 export function VerseCard({
   verse,
   className = "",
   showAudio = true,
 }: Props) {
+  const local = verse.local || verse.twi;
+  if (!local) return null;
+
+  const lang = getLanguage(verse.localLanguageId || local.languageId);
+
   return (
     <article
       className={`rounded-2xl border border-line bg-surface p-5 shadow-sm ${className}`}
     >
-      <p
-        className="text-sm font-semibold tracking-wide text-brand"
-        style={{ fontFamily: "var(--font-display), serif" }}
-      >
-        {verse.humanReference}
-      </p>
+      <div className="flex items-baseline justify-between gap-2">
+        <p
+          className="text-sm font-semibold tracking-wide text-brand"
+          style={{ fontFamily: "var(--font-display), serif" }}
+        >
+          {verse.humanReference}
+        </p>
+        <p className="text-[10px] font-medium uppercase tracking-wide text-ink-soft">
+          {lang.label}
+        </p>
+      </div>
 
       <p
         className="mt-4 text-lg leading-relaxed text-twi"
         style={{ fontFamily: "var(--font-verse), serif" }}
-        lang="tw"
+        lang={lang.htmlLang}
       >
-        {verse.twi.text}
+        {local.text}
       </p>
 
       <p
@@ -45,19 +55,20 @@ export function VerseCard({
         {verse.english.text}
       </p>
 
-      {showAudio && verse.twi.text && (
+      {showAudio && local.text && (
         <div className="mt-4">
           <AudioPlayer
-            twiText={verse.twi.text}
-            proAudioUrl={verse.twi.audioUrl}
+            text={local.text}
+            language={lang.id}
+            proAudioUrl={local.audioUrl}
           />
         </div>
       )}
 
       <footer className="mt-5 space-y-1 border-t border-line pt-3">
-        {verse.twi.copyright && (
+        {local.copyright && (
           <p className="text-[11px] leading-snug text-ink-soft">
-            {verse.twi.copyright}
+            {local.copyright}
           </p>
         )}
         {verse.english.copyright && (

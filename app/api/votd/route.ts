@@ -5,20 +5,27 @@ import {
   getVerseOfTheDayReference,
   YouVersionError,
 } from "@/lib/youversion";
+import { getLanguage, isLocalLanguageId } from "@/lib/languages";
 
 export const runtime = "nodejs";
 
 /**
- * GET Verse of the Day in English + Twi.
+ * GET /api/votd?language=tw
+ * Verse of the Day in English + selected local language.
  */
-export async function GET() {
+export async function GET(req: Request) {
+  const { searchParams } = new URL(req.url);
+  const raw = searchParams.get("language");
+  const language = isLocalLanguageId(raw) ? raw : getLanguage(raw).id;
+
   try {
     const day = dayOfYear();
     const usfm = await getVerseOfTheDayReference(day);
-    const verse = await getBilingualPassage(usfm);
+    const verse = await getBilingualPassage(usfm, language);
     return NextResponse.json({
       day,
       verse,
+      language,
     });
   } catch (e) {
     if (e instanceof YouVersionError) {

@@ -10,16 +10,15 @@ import {
   renderCardToPng,
   slugifyRef,
 } from "@/lib/card";
+import { getLanguage } from "@/lib/languages";
 
 type Props = {
   verse: VerseResult;
-  /** Optional label e.g. "Share as voice note" */
   buttonLabel?: string;
 };
 
 /**
- * Builds PNG image card + Twi audio, then Web Share (files) or download.
- * Receiver needs no app.
+ * Builds PNG image card + local-language audio, then Web Share or download.
  */
 export function ShareSheet({
   verse,
@@ -30,22 +29,26 @@ export function ShareSheet({
   const [status, setStatus] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
+  const local = verse.local || verse.twi;
+  const lang = getLanguage(verse.localLanguageId || local?.languageId);
+
   async function fetchAudioBlob(): Promise<Blob | null> {
-    if (verse.twi.audioUrl) {
+    if (!local) return null;
+    if (local.audioUrl) {
       try {
-        const res = await fetch(verse.twi.audioUrl);
+        const res = await fetch(local.audioUrl);
         if (res.ok) return await res.blob();
       } catch {
-        /* fall through to TTS */
+        /* fall through */
       }
     }
 
-    if (!verse.twi.text?.trim()) return null;
+    if (!local.text?.trim() || !lang.khayaTts) return null;
 
     const res = await fetch("/api/speak", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ twiText: verse.twi.text }),
+      body: JSON.stringify({ text: local.text, language: lang.id }),
     });
     if (!res.ok) return null;
     const ct = res.headers.get("content-type") || "";
@@ -54,7 +57,7 @@ export function ShareSheet({
   }
 
   async function handleShare() {
-    if (!cardRef.current || busy) return;
+    if (!cardRef.current || busy || !local) return;
     setBusy(true);
     setError(null);
     setStatus("Preparing your card…");
@@ -71,16 +74,14 @@ export function ShareSheet({
         type: "image/png",
       });
       const audioFile = audioBlob
-        ? new File(
-            [audioBlob],
-            `dawuro-${slug}.wav`,
-            { type: audioBlob.type || "audio/wav" },
-          )
+        ? new File([audioBlob], `dawuro-${slug}.wav`, {
+            type: audioBlob.type || "audio/wav",
+          })
         : null;
 
       const files = audioFile ? [imageFile, audioFile] : [imageFile];
       const shareTitle = `${verse.humanReference} · Dawuro`;
-      const shareText = `${verse.humanReference}\n\n${verse.twi.text}\n\n${verse.english.text}\n\n— shared via Dawuro`;
+      const shareText = `${verse.humanReference}\n\n${local.text}\n\n${verse.english.text}\n\n— shared via Dawuro (${lang.nativeName})`;
 
       if (canShareFiles() && navigator.canShare?.({ files })) {
         setStatus("Opening share…");
@@ -93,16 +94,13 @@ export function ShareSheet({
           setStatus("Shared.");
           return;
         } catch (e) {
-          // User cancel is fine
           if (e instanceof Error && e.name === "AbortError") {
             setStatus(null);
             return;
           }
-          // Fall through to download
         }
       }
 
-      // Download fallback
       setStatus("Downloading…");
       downloadBlob(imageBlob, `dawuro-${slug}.png`);
       if (audioBlob) {
@@ -111,7 +109,7 @@ export function ShareSheet({
       setStatus(
         audioBlob
           ? "Image + audio saved. Send them on WhatsApp."
-          : "Image saved. Audio unavailable — send the image on WhatsApp.",
+          : "Image saved. Send it on WhatsApp.",
       );
     } catch (e) {
       console.error("[ShareSheet]", e);
@@ -127,7 +125,7 @@ export function ShareSheet({
       <button
         type="button"
         onClick={() => void handleShare()}
-        disabled={busy || !verse.twi.text}
+        disabled={busy || !local?.text}
         className="inline-flex min-h-12 w-full items-center justify-center rounded-xl bg-brand px-5 text-sm font-semibold text-white transition hover:bg-brand-deep disabled:cursor-not-allowed disabled:opacity-50"
       >
         {busy ? "Preparing…" : buttonLabel}
@@ -143,7 +141,6 @@ export function ShareSheet({
         </p>
       )}
 
-      {/* Off-screen render target for html-to-image */}
       <div
         aria-hidden
         className="pointer-events-none fixed left-[-10000px] top-0 overflow-hidden"

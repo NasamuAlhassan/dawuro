@@ -2,6 +2,8 @@
 
 import { useState } from "react";
 import type { Reflection, Tradition, VerseResult } from "@/lib/types";
+import type { LocalLanguageId } from "@/lib/languages";
+import { getLanguage } from "@/lib/languages";
 import { FeelingInput } from "@/components/FeelingInput";
 import { VerseCard } from "@/components/VerseCard";
 import { VerseOfTheDay } from "@/components/VerseOfTheDay";
@@ -13,6 +15,7 @@ import {
   TraditionSetting,
   useTradition,
 } from "@/components/TraditionSetting";
+import { LanguageSetting, useLanguage } from "@/components/LanguageSetting";
 import { ShareSheet } from "@/components/ShareSheet";
 import { fetchWithTimeout } from "@/lib/fetch-timeout";
 
@@ -32,6 +35,7 @@ type ReflectApiResponse = {
 
 export function HomeClient() {
   const [tradition, setTradition] = useTradition();
+  const [language, setLanguage] = useLanguage();
   const [showSettings, setShowSettings] = useState(false);
 
   const [verse, setVerse] = useState<VerseResult | null>(null);
@@ -95,7 +99,7 @@ export function HomeClient() {
     }
   }
 
-  async function handleFeeling(text: string) {
+  async function handleFeeling(text: string, lang: LocalLanguageId = language) {
     setLoading(true);
     setError(null);
     setVerse(null);
@@ -103,7 +107,8 @@ export function HomeClient() {
     setReflectNote(null);
     setTopicLabel(null);
     setFeeling(text);
-    setStatus("Finding a word for you…");
+    const langName = getLanguage(lang).name;
+    setStatus(`Finding a word for you in ${langName}…`);
 
     try {
       const res = await fetchWithTimeout(
@@ -111,7 +116,7 @@ export function HomeClient() {
         {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ feeling: text }),
+          body: JSON.stringify({ feeling: text, language: lang }),
         },
         25_000,
       );
@@ -128,7 +133,6 @@ export function HomeClient() {
       setStatus(null);
       setLoading(false);
 
-      // Progressive: reflection loads after verse is on screen
       void fetchReflection(json.verse, text, tradition);
     } catch {
       setError("Network error. Check your connection and try again.");
@@ -138,9 +142,25 @@ export function HomeClient() {
     }
   }
 
+  function onLanguageChange(id: LocalLanguageId) {
+    setLanguage(id);
+    // Re-fetch current verse in the new language if we have a feeling
+    if (feeling) {
+      void handleFeeling(feeling, id);
+    }
+  }
+
   return (
     <div className="mx-auto flex w-full max-w-md flex-1 flex-col gap-8 px-5 py-6">
-      <div className="flex justify-end">
+      <div className="flex items-center justify-between gap-2">
+        <p className="text-xs text-ink-soft">
+          Reading in{" "}
+          <span className="font-semibold text-ink">
+            {getLanguage(language).label}
+          </span>
+          {" + "}
+          English
+        </p>
         <button
           type="button"
           onClick={() => setShowSettings((s) => !s)}
@@ -152,19 +172,20 @@ export function HomeClient() {
       </div>
 
       {showSettings && (
-        <section className="rounded-2xl border border-line bg-surface p-4">
+        <section className="space-y-5 rounded-2xl border border-line bg-surface p-4">
+          <LanguageSetting value={language} onChange={onLanguageChange} />
           <TraditionSetting value={tradition} onChange={setTradition} />
-          <p className="mt-2 text-[11px] text-ink-soft">
-            Shapes the tone of AI reflections (Gloo). Default suits a Ghanaian
-            evangelical context.
+          <p className="text-[11px] text-ink-soft">
+            Tradition shapes the tone of AI reflections (Gloo). Scripture text
+            always comes from YouVersion — never machine-translated.
           </p>
         </section>
       )}
 
-      <VerseOfTheDay />
+      <VerseOfTheDay language={language} />
 
       <section className="space-y-4">
-        <FeelingInput onSubmit={handleFeeling} loading={loading} />
+        <FeelingInput onSubmit={(t) => handleFeeling(t)} loading={loading} />
 
         {status && (
           <p className="text-sm text-ink-soft" aria-live="polite">
@@ -178,7 +199,8 @@ export function HomeClient() {
             role="alert"
           >
             <p>{error}</p>
-            {error.toLowerCase().includes("biblica") && (
+            {(error.toLowerCase().includes("biblica") ||
+              error.toLowerCase().includes("license")) && (
               <p className="mt-2 text-xs text-ink-soft">
                 Accept the Biblica Fast-track license at{" "}
                 <a
@@ -212,7 +234,9 @@ export function HomeClient() {
             )}
             <VerseCard verse={verse} />
 
-            {reflectLoading && <ReflectionBlock reflection={{ english: "" }} loading />}
+            {reflectLoading && (
+              <ReflectionBlock reflection={{ english: "" }} loading />
+            )}
             {!reflectLoading && reflection && (
               <ReflectionBlock reflection={reflection} />
             )}

@@ -1,10 +1,11 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import type { InputLanguage } from "@/lib/types";
+import type { InputLanguageId } from "@/lib/languages";
+import { getInputLanguage } from "@/lib/languages";
 
 type Props = {
-  language: InputLanguage;
+  language: InputLanguageId;
   onTranscript: (text: string) => void;
   disabled?: boolean;
 };
@@ -15,7 +16,14 @@ type SpeechRecognitionLike = {
   interimResults: boolean;
   start: () => void;
   stop: () => void;
-  onresult: ((ev: { results: { [i: number]: { [j: number]: { transcript: string } }; length: number } }) => void) | null;
+  onresult:
+    | ((ev: {
+        results: {
+          [i: number]: { [j: number]: { transcript: string } };
+          length: number;
+        };
+      }) => void)
+    | null;
   onerror: ((ev: { error: string }) => void) | null;
   onend: (() => void) | null;
 };
@@ -33,10 +41,10 @@ function getSpeechRecognition():
 
 /**
  * English → Web Speech API (client).
- * Twi → MediaRecorder → POST /api/transcribe (Khaya ASR).
- * Transcript is always returned for the parent to show editable.
+ * Twi/Ewe → MediaRecorder → POST /api/transcribe (Khaya ASR).
  */
 export function MicRecorder({ language, onTranscript, disabled }: Props) {
+  const input = getInputLanguage(language);
   const [listening, setListening] = useState(false);
   const [status, setStatus] = useState<string | null>(null);
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
@@ -73,7 +81,7 @@ export function MicRecorder({ language, onTranscript, disabled }: Props) {
     }
     const rec = new SR();
     recognitionRef.current = rec;
-    rec.lang = "en-US";
+    rec.lang = input.webSpeech || "en-US";
     rec.continuous = false;
     rec.interimResults = false;
     rec.onresult = (ev) => {
@@ -89,9 +97,13 @@ export function MicRecorder({ language, onTranscript, disabled }: Props) {
     setListening(true);
     setStatus("Listening…");
     rec.start();
-  }, [onTranscript]);
+  }, [onTranscript, input.webSpeech]);
 
-  const startTwi = useCallback(async () => {
+  const startKhaya = useCallback(async () => {
+    if (!input.khayaAsr) {
+      setStatus("Voice input for this language is not ready — type instead.");
+      return;
+    }
     if (!navigator.mediaDevices?.getUserMedia) {
       setStatus("Mic not available — type instead.");
       return;
@@ -111,7 +123,9 @@ export function MicRecorder({ language, onTranscript, disabled }: Props) {
       };
       mr.onstop = async () => {
         stream.getTracks().forEach((t) => t.stop());
-        const blob = new Blob(chunksRef.current, { type: mime.split(";")[0] });
+        const blob = new Blob(chunksRef.current, {
+          type: mime.split(";")[0],
+        });
         if (!blob.size) {
           setStatus("No audio captured — try again or type.");
           setListening(false);
@@ -121,11 +135,15 @@ export function MicRecorder({ language, onTranscript, disabled }: Props) {
         try {
           const form = new FormData();
           form.append("audio", blob, "feeling.webm");
+          form.append("language", input.khayaAsr!);
           const res = await fetch("/api/transcribe", {
             method: "POST",
             body: form,
           });
-          const json = (await res.json()) as { text?: string; error?: string };
+          const json = (await res.json()) as {
+            text?: string;
+            error?: string;
+          };
           if (!res.ok || !json.text) {
             setStatus(json.error || "Couldn't understand — type instead.");
           } else {
@@ -145,9 +163,9 @@ export function MicRecorder({ language, onTranscript, disabled }: Props) {
       setStatus("Mic permission denied — type instead.");
       setListening(false);
     }
-  }, [onTranscript]);
+  }, [onTranscript, input.khayaAsr]);
 
-  const stopTwi = useCallback(() => {
+  const stopKhaya = useCallback(() => {
     if (mediaRecorderRef.current?.state === "recording") {
       mediaRecorderRef.current.stop();
     }
@@ -157,11 +175,11 @@ export function MicRecorder({ language, onTranscript, disabled }: Props) {
     if (disabled) return;
     if (listening) {
       if (language === "en") stopEnglish();
-      else stopTwi();
+      else stopKhaya();
       return;
     }
     if (language === "en") startEnglish();
-    else void startTwi();
+    else void startKhaya();
   }
 
   return (
@@ -176,7 +194,7 @@ export function MicRecorder({ language, onTranscript, disabled }: Props) {
             ? "border-brand bg-brand text-white shadow-[0_0_0_4px_rgba(178,58,22,0.2)]"
             : "border-line bg-surface text-ink hover:border-gold hover:bg-gold-soft/40"
         }`}
-        title={language === "en" ? "Speak in English" : "Speak in Twi"}
+        title={`Speak in ${input.label}`}
       >
         {listening ? "⏹" : "🎤"}
       </button>
