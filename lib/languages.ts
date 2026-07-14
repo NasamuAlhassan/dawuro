@@ -269,6 +269,8 @@ export const LANGUAGES: Record<LocalLanguageId, LanguageConfig> = {
     title: "Yoruba Contemporary Bible",
     htmlLang: "yo",
     yvpTag: "yo",
+    // ASR accepts "yo" (not "yor"); translate still uses "yor"
+    khayaAsr: "yo",
     khayaTranslate: "yor",
     feelingPlaceholder: "e.g. ẹ̀rù ń bà mí",
     copyrightFallback: "Biblica © — Yoruba Contemporary Bible",
@@ -474,6 +476,7 @@ export const INPUT_LANGUAGES: InputLangOption[] = [
   {
     id: "yo",
     label: "Yorùbá",
+    khayaAsr: "yo",
     khayaTranslate: "yor",
     placeholder: "e.g. ẹ̀rù ń bà mí",
   },
