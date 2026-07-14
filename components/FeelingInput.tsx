@@ -1,7 +1,9 @@
 "use client";
 
 import { useState } from "react";
+import type { InputLanguage } from "@/lib/types";
 import { SUGGESTED_FEELINGS } from "@/lib/verses";
+import { MicRecorder } from "@/components/MicRecorder";
 
 type Props = {
   onSubmit: (feeling: string) => void;
@@ -10,11 +12,12 @@ type Props = {
 };
 
 /**
- * Text input for "what's on your heart" + quick suggestion chips.
- * Mic lands in Phase 4.
+ * Text + mic for "what's on your heart".
+ * Transcript from mic is editable before search.
  */
 export function FeelingInput({ onSubmit, loading, disabled }: Props) {
   const [value, setValue] = useState("");
+  const [language, setLanguage] = useState<InputLanguage>("en");
 
   function submit(feeling: string) {
     const t = feeling.trim();
@@ -24,12 +27,42 @@ export function FeelingInput({ onSubmit, loading, disabled }: Props) {
 
   return (
     <div className="space-y-3">
-      <label
-        htmlFor="feeling"
-        className="block text-sm font-medium text-ink"
-      >
-        What&apos;s on your heart?
-      </label>
+      <div className="flex items-center justify-between gap-2">
+        <label
+          htmlFor="feeling"
+          className="block text-sm font-medium text-ink"
+        >
+          What&apos;s on your heart?
+        </label>
+        <div
+          className="inline-flex rounded-full border border-line bg-surface p-0.5 text-xs font-medium"
+          role="group"
+          aria-label="Input language"
+        >
+          <button
+            type="button"
+            onClick={() => setLanguage("en")}
+            className={`rounded-full px-2.5 py-1 ${
+              language === "en"
+                ? "bg-brand text-white"
+                : "text-ink-soft hover:text-ink"
+            }`}
+          >
+            EN
+          </button>
+          <button
+            type="button"
+            onClick={() => setLanguage("tw")}
+            className={`rounded-full px-2.5 py-1 ${
+              language === "tw"
+                ? "bg-brand text-white"
+                : "text-ink-soft hover:text-ink"
+            }`}
+          >
+            Twi
+          </button>
+        </div>
+      </div>
 
       <div className="flex gap-2">
         <input
@@ -40,10 +73,19 @@ export function FeelingInput({ onSubmit, loading, disabled }: Props) {
           onKeyDown={(e) => {
             if (e.key === "Enter") submit(value);
           }}
-          placeholder="e.g. I'm anxious about my exams"
+          placeholder={
+            language === "tw"
+              ? "e.g. me yɛ suro"
+              : "e.g. I'm anxious about my exams"
+          }
           disabled={loading || disabled}
           className="min-h-12 flex-1 rounded-xl border border-line bg-surface px-4 text-base text-ink placeholder:text-ink-soft/70 outline-none ring-brand/30 focus:ring-2 disabled:opacity-60"
           autoComplete="off"
+        />
+        <MicRecorder
+          language={language}
+          disabled={loading || disabled}
+          onTranscript={(text) => setValue(text)}
         />
         <button
           type="button"
