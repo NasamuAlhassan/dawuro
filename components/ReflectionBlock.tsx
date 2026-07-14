@@ -9,6 +9,7 @@ type Props = {
 
 /**
  * Gloo reflection — clearly labelled so it is never mistaken for Scripture.
+ * Optional local language version via Khaya.
  */
 export function ReflectionBlock({ reflection, loading }: Props) {
   if (loading) {
@@ -37,11 +38,19 @@ export function ReflectionBlock({ reflection, loading }: Props) {
           </p>
         )}
       </div>
-      <p className="mt-2 text-sm leading-relaxed text-ink">
+      {reflection.local && (
+        <p className="mt-2 text-sm leading-relaxed text-ink">
+          {reflection.local}
+        </p>
+      )}
+      <p
+        className={`text-sm leading-relaxed text-ink ${reflection.local ? "mt-3 text-ink-soft" : "mt-2"}`}
+      >
         {reflection.english}
       </p>
       <p className="mt-3 text-[10px] text-ink-soft">
-        A pastoral reflection — not Scripture.
+        A pastoral reflection — not Scripture
+        {reflection.local ? " · local via Khaya" : ""}.
       </p>
     </section>
   );

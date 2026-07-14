@@ -11,7 +11,8 @@ type Props = {
 };
 
 /**
- * On-screen verse: local language primacy, English support, attribution.
+ * Local language primacy + English (YouVersion).
+ * When local is Khaya (no published Bible), show a clear note.
  */
 export function VerseCard({
   verse,
@@ -22,6 +23,8 @@ export function VerseCard({
   if (!local) return null;
 
   const lang = getLanguage(verse.localLanguageId || local.languageId);
+  const fromKhaya =
+    verse.localFromKhaya || local.source === "khaya";
 
   return (
     <article
@@ -39,9 +42,10 @@ export function VerseCard({
         </p>
       </div>
 
-      {verse.proxyNote && (
+      {(verse.proxyNote || fromKhaya) && (
         <p className="mt-2 rounded-lg bg-gold-soft/50 px-2.5 py-1.5 text-[11px] leading-snug text-ink-soft">
-          {verse.proxyNote}
+          {verse.proxyNote ||
+            `${lang.name} text via Khaya. English below is the published YouVersion Scripture.`}
         </p>
       )}
 
@@ -74,12 +78,12 @@ export function VerseCard({
       <footer className="mt-5 space-y-1 border-t border-line pt-3">
         {local.copyright && (
           <p className="text-[11px] leading-snug text-ink-soft">
-            {local.copyright}
+            {fromKhaya ? `Local: ${local.copyright}` : local.copyright}
           </p>
         )}
         {verse.english.copyright && (
           <p className="text-[11px] leading-snug text-ink-soft">
-            {verse.english.copyright}
+            Scripture (EN): {verse.english.copyright}
           </p>
         )}
       </footer>

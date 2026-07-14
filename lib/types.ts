@@ -1,10 +1,10 @@
 /** Shared types for Dawuro — used by API routes and UI components. */
 
-import type { LocalLanguageId } from "@/lib/languages";
+import type { LocalLanguageId, LocalTextSource } from "@/lib/languages";
 
 export type Tradition = "evangelical" | "catholic" | "mainline";
 
-/** One side of a bilingual verse (English or local-language Scripture). */
+/** One side of a bilingual verse (English or local-language text). */
 export type PassageSide = {
   languageId: string;
   label: string;
@@ -12,28 +12,27 @@ export type PassageSide = {
   text: string;
   copyright?: string;
   audioUrl?: string;
+  /** youversion = published Bible; khaya = translated from EN via Khaya */
+  source?: LocalTextSource;
 };
 
 export type VerseResult = {
-  reference: string; // canonical USFM, e.g. "PHP.4.6-7"
-  humanReference: string; // display, e.g. "Philippians 4:6-7"
+  reference: string;
+  humanReference: string;
   english: PassageSide;
-  /** Selected local-language Scripture (Twi, Ewe, Yoruba, …) — never MT'd */
+  /** Local language side — YouVersion Bible OR Khaya render of English */
   local: PassageSide;
   localLanguageId: LocalLanguageId;
-  /** When true, local text is a related published Bible (e.g. Twi for Kusaal) */
-  scriptureProxied?: boolean;
+  /** True when local text is Khaya (no published Bible on YouVersion) */
+  localFromKhaya?: boolean;
   proxyNote?: string;
-  /**
-   * @deprecated Use `local` — kept briefly for any residual callers.
-   * Prefer local always.
-   */
+  /** @deprecated Use `local` */
   twi?: PassageSide;
 };
 
 export type Reflection = {
-  english: string; // 2–3 sentences from Gloo
-  local?: string; // optional, via Khaya (reflection only — never Scripture)
+  english: string;
+  local?: string;
   tradition?: Tradition;
 };
 
@@ -44,5 +43,4 @@ export type ShareCard = {
   audioUrl: string;
 };
 
-/** @deprecated Prefer InputLanguageId from lib/languages */
-export type InputLanguage = "en" | "tw" | "ee";
+export type InputLanguage = "en" | "tw" | "ee" | "gaa" | "dag";

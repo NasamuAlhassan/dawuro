@@ -106,7 +106,7 @@ export function LanguageSetting({ value, onChange }: Props) {
                     lang.title || lang.name,
                     voice ? "Hear aloud" : null,
                     asr ? "Speak input" : null,
-                    lang.proxyNote || null,
+                    lang.khayaNote || null,
                   ]
                     .filter(Boolean)
                     .join(" · ")}
@@ -130,10 +130,12 @@ export function LanguageSetting({ value, onChange }: Props) {
       ))}
 
       <p className="text-[10px] leading-relaxed text-ink-soft">
-        <span className="font-medium">♪</span> Hear verse aloud (Khaya TTS) ·{" "}
+        <span className="font-medium">♪</span> Hear aloud (Khaya TTS) ·{" "}
         <span className="font-medium">🎤</span> Speak feelings (Khaya ASR).
-        Languages without a YouVersion Bible yet still appear — we show a
-        related published text and never invent Scripture.
+        If a language isn’t on YouVersion (e.g. Kusaal, Ga), we use{" "}
+        <span className="font-medium">Khaya</span> to translate the English
+        verse, plus ASR/TTS when available. English is always published
+        Scripture from YouVersion.
       </p>
     </div>
   );

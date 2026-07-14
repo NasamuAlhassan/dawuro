@@ -1,6 +1,8 @@
 import { NextResponse } from "next/server";
 import { GlooError, generateReflection, isGlooConfigured } from "@/lib/gloo";
 import type { Tradition } from "@/lib/types";
+import { getLanguage, isLocalLanguageId } from "@/lib/languages";
+import { translateFromEnglish } from "@/lib/khaya";
 
 export const runtime = "nodejs";
 
@@ -11,14 +13,13 @@ type Body = {
   humanReference?: string;
   englishVerseText?: string;
   tradition?: string;
+  /** Translate reflection into this language via Khaya when possible */
+  language?: string;
 };
 
 /**
- * POST { feeling, humanReference, englishVerseText, tradition? }
- * → { reflection: { english, tradition } }
- *
- * If Gloo keys are missing, returns 503 with a clear code so the UI
- * can skip reflection without blanking the verse.
+ * POST { feeling, humanReference, englishVerseText, tradition?, language? }
+ * → { reflection: { english, local?, tradition } }
  */
 export async function POST(req: Request) {
   if (!isGlooConfigured()) {
@@ -65,9 +66,28 @@ export async function POST(req: Request) {
       tradition,
     });
 
+    let local: string | undefined;
+    const lang = isLocalLanguageId(body.language)
+      ? getLanguage(body.language)
+      : body.language
+        ? getLanguage(body.language)
+        : null;
+
+    if (lang?.khayaTranslate && lang.id !== "fr") {
+      try {
+        local = await translateFromEnglish(
+          result.english,
+          lang.khayaTranslate,
+        );
+      } catch (e) {
+        console.warn("[/api/reflect] Khaya reflection translate failed", e);
+      }
+    }
+
     return NextResponse.json({
       reflection: {
         english: result.english,
+        local,
         tradition: result.tradition,
       },
       model: result.model,
@@ -77,8 +97,7 @@ export async function POST(req: Request) {
       return NextResponse.json(
         { error: e.message, code: e.code || "GLOO_ERROR" },
         {
-          status:
-            e.status >= 400 && e.status < 600 ? e.status : 502,
+          status: e.status >= 400 && e.status < 600 ? e.status : 502,
         },
       );
     }

@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import type { Reflection, Tradition, VerseResult } from "@/lib/types";
-import type { LocalLanguageId } from "@/lib/languages";
+import type { InputLanguageId, LocalLanguageId } from "@/lib/languages";
 import { getLanguage } from "@/lib/languages";
 import { FeelingInput } from "@/components/FeelingInput";
 import { VerseCard } from "@/components/VerseCard";
@@ -53,6 +53,7 @@ export function HomeClient() {
     v: VerseResult,
     feel: string,
     trad: Tradition,
+    lang: LocalLanguageId,
   ) {
     setReflectLoading(true);
     setReflection(null);
@@ -68,6 +69,7 @@ export function HomeClient() {
             humanReference: v.humanReference,
             englishVerseText: v.english.text,
             tradition: trad,
+            language: lang,
           }),
         },
         30_000,
@@ -99,7 +101,11 @@ export function HomeClient() {
     }
   }
 
-  async function handleFeeling(text: string, lang: LocalLanguageId = language) {
+  async function handleFeeling(
+    text: string,
+    inputLanguage: InputLanguageId = "en",
+    scriptureLang: LocalLanguageId = language,
+  ) {
     setLoading(true);
     setError(null);
     setVerse(null);
@@ -107,8 +113,12 @@ export function HomeClient() {
     setReflectNote(null);
     setTopicLabel(null);
     setFeeling(text);
-    const langName = getLanguage(lang).name;
-    setStatus(`Finding a word for you in ${langName}…`);
+    const langName = getLanguage(scriptureLang).name;
+    setStatus(
+      getLanguage(scriptureLang).bibleId
+        ? `Finding a word for you in ${langName}…`
+        : `Finding a word — English from YouVersion, ${langName} via Khaya…`,
+    );
 
     try {
       const res = await fetchWithTimeout(
@@ -116,9 +126,13 @@ export function HomeClient() {
         {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ feeling: text, language: lang }),
+          body: JSON.stringify({
+            feeling: text,
+            language: scriptureLang,
+            inputLanguage,
+          }),
         },
-        25_000,
+        45_000,
       );
       const json = (await res.json()) as VerseApiResponse;
 
@@ -133,7 +147,7 @@ export function HomeClient() {
       setStatus(null);
       setLoading(false);
 
-      void fetchReflection(json.verse, text, tradition);
+      void fetchReflection(json.verse, text, tradition, scriptureLang);
     } catch {
       setError("Network error. Check your connection and try again.");
       setStatus(null);
@@ -144,9 +158,8 @@ export function HomeClient() {
 
   function onLanguageChange(id: LocalLanguageId) {
     setLanguage(id);
-    // Re-fetch current verse in the new language if we have a feeling
     if (feeling) {
-      void handleFeeling(feeling, id);
+      void handleFeeling(feeling, "en", id);
     }
   }
 
@@ -185,7 +198,10 @@ export function HomeClient() {
       <VerseOfTheDay language={language} />
 
       <section className="space-y-4">
-        <FeelingInput onSubmit={(t) => handleFeeling(t)} loading={loading} />
+        <FeelingInput
+          onSubmit={(t, inputLang) => handleFeeling(t, inputLang)}
+          loading={loading}
+        />
 
         {status && (
           <p className="text-sm text-ink-soft" aria-live="polite">

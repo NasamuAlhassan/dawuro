@@ -1,9 +1,9 @@
 /**
  * YouVersion Platform API — server only.
- * Docs: https://developers.youversion.com/api/bibles
  *
- * Local-language Bibles (mostly Biblica) require accepting the Biblica
- * Fast-track license at platform.youversion.com. English BSB works without it.
+ * Published Scripture always comes from YouVersion.
+ * When a language has no YouVersion Bible (Kusaal, Ga, Dagbani, …),
+ * English is fetched from YouVersion and the local side is filled by Khaya.
  */
 
 import { requireYouVersionEnv } from "@/lib/env";
@@ -12,10 +12,11 @@ import type { VerseResult } from "@/lib/types";
 import {
   ENGLISH_BIBLE,
   getLanguage,
-  resolveScriptureLanguage,
+  usesKhayaLocalText,
   type LocalLanguageId,
   type LanguageConfig,
 } from "@/lib/languages";
+import { translateFromEnglish } from "@/lib/khaya";
 
 const YVP_BASE = "https://api.youversion.com/v1";
 
@@ -140,53 +141,105 @@ async function resolveCopyright(
 }
 
 /**
- * Fetch the same USFM reference in English (BSB) + selected local language.
- * Scripture text is never machine-translated — both come from YouVersion.
- * Proxied languages use a related published Bible with an explicit note.
+ * English from YouVersion + local side:
+ * - published YouVersion Bible when bibleId is set
+ * - else Khaya translation of the English verse (Kusaal, Ga, …)
  */
 export async function getBilingualPassage(
   usfm: string,
   localLanguageId: LocalLanguageId | string = "tw",
 ): Promise<VerseResult> {
-  const { display, source, isProxied } =
-    resolveScriptureLanguage(localLanguageId);
+  const display = getLanguage(localLanguageId);
 
-  if (!source.bibleId) {
-    throw new YouVersionError(
-      `No YouVersion Bible configured for ${display.name}.`,
-      400,
-      "NO_BIBLE",
-    );
-  }
-
-  const [en, local, enCopyright, localCopyright] = await Promise.all([
-    getPassage(ENGLISH_BIBLE.id, usfm, "English"),
-    getPassage(source.bibleId, usfm, source.name),
-    resolveCopyright(ENGLISH_BIBLE.id, ENGLISH_BIBLE.copyrightFallback),
-    resolveCopyright(source.bibleId, source.copyrightFallback),
-  ]);
-
-  const human = en.reference || local.reference || usfmToHuman(usfm);
-
-  // Label: show user's language name; if proxied, note the actual Bible language
-  const localLabel = isProxied
-    ? `${display.label} · ${source.label} text`
-    : display.label;
-
-  const localSide = {
-    languageId: display.id,
-    label: localLabel,
-    versionId: String(source.bibleId),
-    text: cleanPassageText(local.content),
-    copyright: localCopyright,
-  };
+  const enPassage = await getPassage(
+    ENGLISH_BIBLE.id,
+    usfm,
+    "English",
+  );
+  const enText = cleanPassageText(enPassage.content);
+  const enCopyright = await resolveCopyright(
+    ENGLISH_BIBLE.id,
+    ENGLISH_BIBLE.copyrightFallback,
+  );
+  const human = enPassage.reference || usfmToHuman(usfm);
 
   const englishSide = {
     languageId: "en",
     label: "English",
     versionId: String(ENGLISH_BIBLE.id),
-    text: cleanPassageText(en.content),
+    text: enText,
     copyright: enCopyright,
+    source: "youversion" as const,
+  };
+
+  // Path A: published Bible on YouVersion
+  if (display.bibleId) {
+    const localPassage = await getPassage(
+      display.bibleId,
+      usfm,
+      display.name,
+    );
+    const localCopyright = await resolveCopyright(
+      display.bibleId,
+      display.copyrightFallback,
+    );
+    const localSide = {
+      languageId: display.id,
+      label: display.label,
+      versionId: String(display.bibleId),
+      text: cleanPassageText(localPassage.content),
+      copyright: localCopyright,
+      source: "youversion" as const,
+    };
+    return {
+      reference: usfm,
+      humanReference: human || localPassage.reference || usfmToHuman(usfm),
+      english: englishSide,
+      local: localSide,
+      localLanguageId: display.id,
+      localFromKhaya: false,
+      twi: localSide,
+    };
+  }
+
+  // Path B: no YouVersion Bible → Khaya translates English verse into local language
+  if (!display.khayaTranslate) {
+    throw new YouVersionError(
+      `No YouVersion Bible and no Khaya translate code for ${display.name}.`,
+      400,
+      "NO_LOCAL_SOURCE",
+    );
+  }
+
+  let localText: string;
+  try {
+    localText = cleanPassageText(
+      await translateFromEnglish(enText, display.khayaTranslate),
+    );
+  } catch (e) {
+    const msg = e instanceof Error ? e.message : "Khaya translate failed";
+    throw new YouVersionError(
+      `Could not render ${display.name} via Khaya: ${msg}`,
+      502,
+      "KHAYA_TRANSLATE_FAILED",
+    );
+  }
+
+  if (!localText) {
+    throw new YouVersionError(
+      `Khaya returned empty ${display.name} text.`,
+      502,
+      "KHAYA_EMPTY",
+    );
+  }
+
+  const localSide = {
+    languageId: display.id,
+    label: `${display.label} · Khaya`,
+    versionId: `khaya:${display.khayaTranslate}`,
+    text: localText,
+    copyright: display.copyrightFallback,
+    source: "khaya" as const,
   };
 
   return {
@@ -195,11 +248,10 @@ export async function getBilingualPassage(
     english: englishSide,
     local: localSide,
     localLanguageId: display.id,
-    scriptureProxied: isProxied,
-    proxyNote: isProxied
-      ? display.proxyNote ||
-        `${display.name} Bible not on YouVersion yet — showing ${source.name} (published text, not machine-translated).`
-      : undefined,
+    localFromKhaya: true,
+    proxyNote:
+      display.khayaNote ||
+      `${display.name} is not on YouVersion. Local text is Khaya translation of the English verse. English (BSB) is the published Scripture.`,
     twi: localSide,
   };
 }
@@ -225,26 +277,46 @@ function shortCopyright(
 export async function probeLanguageAccess(
   languageId: LocalLanguageId | string = "tw",
 ): Promise<{ ok: boolean; message: string; language: LanguageConfig }> {
-  const { display, source } = resolveScriptureLanguage(languageId);
-  if (!source.bibleId) {
+  const display = getLanguage(languageId);
+
+  if (usesKhayaLocalText(display)) {
+    // Khaya-only languages: probe English YouVersion + a short translate
+    try {
+      await getPassage(ENGLISH_BIBLE.id, "JHN.3.16", "English");
+      if (display.khayaTranslate) {
+        await translateFromEnglish("God is love.", display.khayaTranslate);
+      }
+      return {
+        ok: true,
+        message: `${display.name}: YouVersion EN + Khaya local OK`,
+        language: display,
+      };
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : "Unknown error";
+      return { ok: false, message: msg, language: display };
+    }
+  }
+
+  if (!display.bibleId) {
     return {
       ok: false,
       message: `No Bible ID for ${display.name}`,
       language: display,
     };
   }
+
   try {
-    await getPassage(source.bibleId, "JHN.3.16", source.name);
+    await getPassage(display.bibleId, "JHN.3.16", display.name);
     return {
       ok: true,
-      message: `${display.name} via ${source.abbreviation || source.name} OK`,
+      message: `${display.name} (${display.abbreviation}) passage access OK`,
       language: display,
     };
   } catch (e) {
     if (e instanceof YouVersionError && e.status === 403) {
       return {
         ok: false,
-        message: `${source.name} blocked — accept the Biblica Fast-track Bible License at platform.youversion.com.`,
+        message: `${display.name} blocked — accept the Biblica Fast-track Bible License at platform.youversion.com.`,
         language: display,
       };
     }

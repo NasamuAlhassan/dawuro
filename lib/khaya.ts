@@ -137,20 +137,39 @@ export async function synthesizeTwi(
   return synthesizeSpeech(text, "tw", timeoutMs);
 }
 
-/**
- * Translate English → local language via Khaya.
- * For reflections only — never Scripture.
- * @param toCode Khaya target code (tw, ee, yor, gaa, …)
- */
-export async function translateFromEnglish(
+async function translatePair(
   text: string,
-  toCode: string,
+  langPair: string,
   timeoutMs = DEFAULT_TIMEOUT_MS,
 ): Promise<string> {
   const cleaned = text.trim();
   if (!cleaned) return "";
-  const langPair = `en-${toCode}`;
 
+  // Khaya limit ~1000 chars; chunk long passages by sentence
+  if (cleaned.length <= 1000) {
+    return translateChunk(cleaned, langPair, timeoutMs);
+  }
+
+  const chunks = cleaned.match(/[^.!?]+[.!?]+|[^.!?]+$/g) || [cleaned];
+  const out: string[] = [];
+  let buf = "";
+  for (const part of chunks) {
+    if ((buf + part).length > 900 && buf) {
+      out.push(await translateChunk(buf.trim(), langPair, timeoutMs));
+      buf = part;
+    } else {
+      buf += part;
+    }
+  }
+  if (buf.trim()) out.push(await translateChunk(buf.trim(), langPair, timeoutMs));
+  return out.join(" ").trim();
+}
+
+async function translateChunk(
+  text: string,
+  langPair: string,
+  timeoutMs: number,
+): Promise<string> {
   const res = await withTimeout(
     fetch(TRANSLATE_URL, {
       method: "POST",
@@ -158,14 +177,17 @@ export async function translateFromEnglish(
         "Ocp-Apim-Subscription-Key": apiKey(),
         "Content-Type": "application/json",
       },
-      body: JSON.stringify({ in: cleaned.slice(0, 1000), lang: langPair }),
+      body: JSON.stringify({ in: text.slice(0, 1000), lang: langPair }),
     }),
     timeoutMs,
     "Khaya translate",
   );
 
   if (!res.ok) {
-    throw new KhayaError(`Khaya translate failed (${res.status})`, res.status);
+    throw new KhayaError(
+      `Khaya translate failed (${res.status}) for ${langPair}`,
+      res.status,
+    );
   }
 
   const data: unknown = await res.json().catch(async () => res.text());
@@ -174,6 +196,30 @@ export async function translateFromEnglish(
     return String((data as { translatedText: string }).translatedText);
   }
   return String(data);
+}
+
+/**
+ * English → local (e.g. en-kus).
+ * Used when YouVersion has no Bible for that language (Kusaal, Ga, …)
+ * and for reflections. Label non-YouVersion verse text clearly in the UI.
+ */
+export async function translateFromEnglish(
+  text: string,
+  toCode: string,
+  timeoutMs = DEFAULT_TIMEOUT_MS,
+): Promise<string> {
+  return translatePair(text, `en-${toCode}`, timeoutMs);
+}
+
+/**
+ * Local → English (e.g. kus-en) so we can map feelings to verses.
+ */
+export async function translateToEnglish(
+  text: string,
+  fromCode: string,
+  timeoutMs = DEFAULT_TIMEOUT_MS,
+): Promise<string> {
+  return translatePair(text, `${fromCode}-en`, timeoutMs);
 }
 
 /** @deprecated Use translateFromEnglish(text, "tw") */

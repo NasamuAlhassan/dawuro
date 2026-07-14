@@ -1,30 +1,28 @@
 /**
  * Supported languages for Dawuro.
  *
- * Scripture → YouVersion only (never machine-translated).
- * When a language has no YouVersion Bible yet, we still list it (Ghana first)
- * and show a related published Bible with a clear proxy note.
- *
- * Voice → Khaya TTS / ASR where the live API accepts the language code.
- * Verified TTS codes: tw, ee, ki
- * Verified ASR codes: tw, ee, gaa, dag
- * Translate: eng, twi, ewe, gaa, fat, yor, dag, gur, kus, kik, luo, mer, …
+ * Rules:
+ * - When YouVersion has a published Bible → fetch that text (never MT Scripture).
+ * - When YouVersion does NOT have it (e.g. Kusaal, Ga, Dagbani) → use Khaya:
+ *   translate EN verse → local, plus ASR / TTS when the API supports them.
+ * - English (BSB) is always the authoritative YouVersion companion side.
+ * - Reflections / feelings may always use Khaya translate.
  */
 
 export type LocalLanguageId =
   // Ghana — primary
   | "tw"
-  | "ak" // Akuapem Twi
+  | "ak"
   | "ee"
   | "gaa"
   | "fat"
   | "dag"
   | "gur"
   | "kus"
-  | "gjn" // Gonja
-  | "xsm" // Kasem
-  | "sil" // Sisaala
-  // West / East Africa + French
+  | "gjn"
+  | "xsm"
+  | "sil"
+  // Wider
   | "yo"
   | "ha"
   | "ig"
@@ -39,9 +37,16 @@ export type InputLanguageId =
   | "tw"
   | "ee"
   | "gaa"
-  | "dag";
+  | "dag"
+  | "fat"
+  | "kus"
+  | "gur"
+  | "yo";
 
 export type LanguageRegion = "ghana" | "west-africa" | "east-africa" | "other";
+
+/** How the local-language side of the card is produced */
+export type LocalTextSource = "youversion" | "khaya";
 
 export type LanguageConfig = {
   id: LocalLanguageId;
@@ -49,27 +54,29 @@ export type LanguageConfig = {
   name: string;
   nativeName: string;
   region: LanguageRegion;
-  /** YouVersion Platform bible_id when this language has its own text */
+  /** YouVersion Platform bible_id — if set, local text comes from YouVersion */
   bibleId?: number;
   abbreviation?: string;
   title?: string;
-  /**
-   * If no direct Bible, use this language's Bible for the local side.
-   * Card shows a proxy note — never MT Scripture into this language.
-   */
-  scriptureProxy?: LocalLanguageId;
   htmlLang: string;
   yvpTag?: string;
-  /** Khaya TTS language code (verified live: tw, ee, ki) */
+  /**
+   * Khaya TTS language code.
+   * Verified working: tw, ee, ki. Others may be attempted and degrade gracefully.
+   */
   khayaTts?: string;
   /** Khaya ASR language code (verified: tw, ee, gaa, dag) */
   khayaAsr?: string;
-  /** Khaya translate target from English, e.g. "kus" → en-kus (reflections only) */
+  /**
+   * Khaya translate code for en-{code} / {code}-en pairs.
+   * Used for: (1) local card text when no YouVersion Bible,
+   * (2) feeling → English for verse mapping, (3) reflection → local.
+   */
   khayaTranslate?: string;
   feelingPlaceholder: string;
   copyrightFallback: string;
-  /** Short note when Scripture is proxied */
-  proxyNote?: string;
+  /** Shown when local text is from Khaya (not a published Bible) */
+  khayaNote?: string;
 };
 
 const AKAN_ASANTE = {
@@ -80,7 +87,7 @@ const AKAN_ASANTE = {
 } as const;
 
 export const LANGUAGES: Record<LocalLanguageId, LanguageConfig> = {
-  // ─── Ghana (voice + Khaya first) ─────────────────────────────────
+  // ─── Ghana ───────────────────────────────────────────────────────
   tw: {
     id: "tw",
     label: "Twi",
@@ -106,7 +113,6 @@ export const LANGUAGES: Record<LocalLanguageId, LanguageConfig> = {
     title: "Akuapem Twi Nkwa Asɛm",
     htmlLang: "ak",
     yvpTag: "ak",
-    // Closest spoken model — same Akan family
     khayaTts: "tw",
     khayaAsr: "tw",
     khayaTranslate: "tw",
@@ -130,21 +136,21 @@ export const LANGUAGES: Record<LocalLanguageId, LanguageConfig> = {
     feelingPlaceholder: "e.g. me vɔ̃ na",
     copyrightFallback: "Biblica © — Ewe Contemporary Scriptures",
   },
+  // No YouVersion Bible → full Khaya path
   gaa: {
     id: "gaa",
     label: "Ga",
     name: "Ga",
     nativeName: "Gã",
     region: "ghana",
-    // No Ga Bible on YouVersion Platform yet
-    scriptureProxy: "tw",
     htmlLang: "gaa",
     khayaAsr: "gaa",
     khayaTranslate: "gaa",
+    // TTS not verified for gaa; leave unset so we don't promise ♪
     feelingPlaceholder: "e.g. mi gbaa mi",
-    copyrightFallback: "Asante Twi shown — Ga Bible not yet on YouVersion",
-    proxyNote:
-      "Ga Bible not yet on YouVersion — showing Asante Twi + English. You can speak or type feelings in Ga.",
+    copyrightFallback: "Khaya AI translation — not a published Bible",
+    khayaNote:
+      "No Ga Bible on YouVersion yet. Local text is a Khaya translation of the English YouVersion verse (for reading & sharing). English is the published Scripture.",
   },
   fat: {
     id: "fat",
@@ -152,17 +158,14 @@ export const LANGUAGES: Record<LocalLanguageId, LanguageConfig> = {
     name: "Fante",
     nativeName: "Mfantse",
     region: "ghana",
-    // Akan family — use Asante Twi published text (not MT)
-    bibleId: AKAN_ASANTE.bibleId,
-    abbreviation: AKAN_ASANTE.abbreviation,
-    title: AKAN_ASANTE.title,
+    // Prefer Khaya Fante text (Khaya has fat); EN from YouVersion
     htmlLang: "fat",
-    khayaTts: "tw",
+    khayaTts: "tw", // closest voice model when speaking Fante text
     khayaTranslate: "fat",
     feelingPlaceholder: "e.g. me suro",
-    copyrightFallback: AKAN_ASANTE.copyrightFallback,
-    proxyNote:
-      "Showing Asante Twi Scripture (Akan family). Fante is supported for typing via Khaya.",
+    copyrightFallback: "Khaya AI translation — not a published Fante Bible",
+    khayaNote:
+      "Fante local text via Khaya. English is YouVersion (BSB). You can also hear with Twi voice model.",
   },
   dag: {
     id: "dag",
@@ -170,14 +173,26 @@ export const LANGUAGES: Record<LocalLanguageId, LanguageConfig> = {
     name: "Dagbani",
     nativeName: "Dagbani",
     region: "ghana",
-    scriptureProxy: "tw",
     htmlLang: "dag",
     khayaAsr: "dag",
     khayaTranslate: "dag",
     feelingPlaceholder: "e.g. n zɔri",
-    copyrightFallback: "Asante Twi shown — Dagbani Bible not yet on YouVersion",
-    proxyNote:
-      "Dagbani Bible not yet on YouVersion — showing Asante Twi + English. You can speak feelings in Dagbani.",
+    copyrightFallback: "Khaya AI translation — not a published Bible",
+    khayaNote:
+      "No Dagbani Bible on YouVersion yet. Local text is Khaya translation of the English YouVersion verse. Speak feelings in Dagbani (ASR).",
+  },
+  kus: {
+    id: "kus",
+    label: "Kusaal",
+    name: "Kusaal",
+    nativeName: "Kʋsaal",
+    region: "ghana",
+    htmlLang: "kus",
+    khayaTranslate: "kus",
+    feelingPlaceholder: "e.g. m zu'oe dabiem",
+    copyrightFallback: "Khaya AI translation — not a published Bible",
+    khayaNote:
+      "Kusaal is not on YouVersion. We fetch English from YouVersion, then use Khaya to translate into Kusaal for reading. English remains the published Scripture.",
   },
   gur: {
     id: "gur",
@@ -185,6 +200,7 @@ export const LANGUAGES: Record<LocalLanguageId, LanguageConfig> = {
     name: "Gurene (Ninkare)",
     nativeName: "Gurene",
     region: "ghana",
+    // YouVersion has Ninkare NT
     bibleId: 1323,
     abbreviation: "NINK",
     title: "New Testament in Ninkare",
@@ -193,20 +209,6 @@ export const LANGUAGES: Record<LocalLanguageId, LanguageConfig> = {
     khayaTranslate: "gur",
     feelingPlaceholder: "e.g. m tara dabeem",
     copyrightFallback: "Ninkare New Testament",
-  },
-  kus: {
-    id: "kus",
-    label: "Kusaal",
-    name: "Kusaal",
-    nativeName: "Kʋsaal",
-    region: "ghana",
-    scriptureProxy: "tw",
-    htmlLang: "kus",
-    khayaTranslate: "kus",
-    feelingPlaceholder: "e.g. m zu'oe dabiem",
-    copyrightFallback: "Asante Twi shown — Kusaal Bible not yet on YouVersion",
-    proxyNote:
-      "Kusaal Bible not yet on YouVersion — showing Asante Twi + English. Type feelings in Kusaal; Khaya can translate reflections.",
   },
   gjn: {
     id: "gjn",
@@ -347,13 +349,12 @@ export const LANGUAGES: Record<LocalLanguageId, LanguageConfig> = {
     name: "Luo",
     nativeName: "Dholuo",
     region: "east-africa",
-    scriptureProxy: "sw",
     htmlLang: "luo",
     khayaTranslate: "luo",
     feelingPlaceholder: "e.g. aluor",
-    copyrightFallback: "Kiswahili shown — Luo Bible not configured",
-    proxyNote:
-      "Luo Scripture not configured on YouVersion here — showing Kiswahili + English. Type feelings in Dholuo.",
+    copyrightFallback: "Khaya AI translation — not a published Bible",
+    khayaNote:
+      "Luo local text via Khaya from English YouVersion. English is the published Scripture.",
   },
   mer: {
     id: "mer",
@@ -361,19 +362,16 @@ export const LANGUAGES: Record<LocalLanguageId, LanguageConfig> = {
     name: "Kimeru",
     nativeName: "Kĩmĩĩrũ",
     region: "east-africa",
-    scriptureProxy: "ki",
     htmlLang: "mer",
     khayaTranslate: "mer",
     feelingPlaceholder: "e.g. ndĩ na guoya",
-    copyrightFallback: "Gĩkũyũ shown — Kimeru Bible not configured",
-    proxyNote:
-      "Kimeru Scripture not configured — showing Gĩkũyũ + English. Type feelings in Kĩmĩĩrũ.",
+    copyrightFallback: "Khaya AI translation — not a published Bible",
+    khayaNote:
+      "Kimeru local text via Khaya from English YouVersion. English is the published Scripture.",
   },
 };
 
-/** Ghana first, then by region — voice-capable sorted slightly higher within Ghana */
 export const LANGUAGE_LIST: LanguageConfig[] = [
-  // Ghana — voice first
   LANGUAGES.tw,
   LANGUAGES.ak,
   LANGUAGES.ee,
@@ -385,16 +383,13 @@ export const LANGUAGE_LIST: LanguageConfig[] = [
   LANGUAGES.gjn,
   LANGUAGES.xsm,
   LANGUAGES.sil,
-  // West Africa
   LANGUAGES.yo,
   LANGUAGES.ha,
   LANGUAGES.ig,
-  // East Africa — Kikuyu has TTS
   LANGUAGES.ki,
   LANGUAGES.sw,
   LANGUAGES.luo,
   LANGUAGES.mer,
-  // Other
   LANGUAGES.fr,
 ];
 
@@ -412,10 +407,12 @@ export type InputLangOption = {
   label: string;
   webSpeech?: string;
   khayaAsr?: string;
+  /** For type-only languages: Khaya code to translate feeling → English */
+  khayaTranslate?: string;
   placeholder: string;
 };
 
-/** Mic / type feeling languages — EN + verified Khaya ASR */
+/** Feeling input: EN + Khaya ASR languages + type-only Khaya langs */
 export const INPUT_LANGUAGES: InputLangOption[] = [
   {
     id: "en",
@@ -427,25 +424,53 @@ export const INPUT_LANGUAGES: InputLangOption[] = [
     id: "tw",
     label: "Twi",
     khayaAsr: "tw",
+    khayaTranslate: "tw",
     placeholder: "e.g. me yɛ suro",
   },
   {
     id: "ee",
     label: "Ewe",
     khayaAsr: "ee",
+    khayaTranslate: "ee",
     placeholder: "e.g. me vɔ̃ na",
   },
   {
     id: "gaa",
     label: "Ga",
     khayaAsr: "gaa",
+    khayaTranslate: "gaa",
     placeholder: "e.g. mi gbaa mi",
   },
   {
     id: "dag",
     label: "Dagbani",
     khayaAsr: "dag",
+    khayaTranslate: "dag",
     placeholder: "e.g. n zɔri",
+  },
+  {
+    id: "fat",
+    label: "Fante",
+    khayaTranslate: "fat",
+    placeholder: "e.g. me suro",
+  },
+  {
+    id: "kus",
+    label: "Kusaal",
+    khayaTranslate: "kus",
+    placeholder: "e.g. m zu'oe dabiem",
+  },
+  {
+    id: "gur",
+    label: "Gurene",
+    khayaTranslate: "gur",
+    placeholder: "e.g. m tara dabeem",
+  },
+  {
+    id: "yo",
+    label: "Yorùbá",
+    khayaTranslate: "yor",
+    placeholder: "e.g. ẹ̀rù ń bà mí",
   },
 ];
 
@@ -458,31 +483,9 @@ export function getLanguage(id: string | undefined | null): LanguageConfig {
   return LANGUAGES[DEFAULT_LOCAL_LANGUAGE];
 }
 
-/**
- * Resolve which YouVersion Bible to fetch for a language.
- * Follows scriptureProxy once if needed.
- */
-export function resolveScriptureLanguage(
-  id: string | undefined | null,
-): {
-  display: LanguageConfig;
-  source: LanguageConfig;
-  isProxied: boolean;
-} {
-  const display = getLanguage(id);
-  if (display.bibleId) {
-    return { display, source: display, isProxied: false };
-  }
-  if (display.scriptureProxy) {
-    const source = getLanguage(display.scriptureProxy);
-    return { display, source, isProxied: true };
-  }
-  // Ultimate fallback
-  return {
-    display,
-    source: LANGUAGES.tw,
-    isProxied: true,
-  };
+/** True when local card text should come from Khaya (no YouVersion Bible). */
+export function usesKhayaLocalText(lang: LanguageConfig): boolean {
+  return !lang.bibleId && Boolean(lang.khayaTranslate);
 }
 
 export function getInputLanguage(
@@ -497,6 +500,10 @@ export function hasVoice(lang: LanguageConfig): boolean {
 
 export function hasAsr(lang: LanguageConfig): boolean {
   return Boolean(lang.khayaAsr);
+}
+
+export function hasKhaya(lang: LanguageConfig): boolean {
+  return Boolean(lang.khayaTranslate || lang.khayaAsr || lang.khayaTts);
 }
 
 export const STORAGE_KEY_LANGUAGE = "dawuro_language";

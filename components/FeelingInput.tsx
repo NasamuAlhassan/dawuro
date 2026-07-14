@@ -7,14 +7,13 @@ import { SUGGESTED_FEELINGS } from "@/lib/verses";
 import { MicRecorder } from "@/components/MicRecorder";
 
 type Props = {
-  onSubmit: (feeling: string) => void;
+  onSubmit: (feeling: string, inputLanguage: InputLanguageId) => void;
   loading?: boolean;
   disabled?: boolean;
 };
 
 /**
- * Text + mic for "what's on your heart".
- * Transcript from mic is editable before search.
+ * Text + mic. Passes input language so the API can Khaya-translate feelings.
  */
 export function FeelingInput({ onSubmit, loading, disabled }: Props) {
   const [value, setValue] = useState("");
@@ -24,12 +23,12 @@ export function FeelingInput({ onSubmit, loading, disabled }: Props) {
   function submit(feeling: string) {
     const t = feeling.trim();
     if (!t || loading || disabled) return;
-    onSubmit(t);
+    onSubmit(t, language);
   }
 
   return (
     <div className="space-y-3">
-      <div className="flex items-center justify-between gap-2">
+      <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
         <label
           htmlFor="feeling"
           className="block text-sm font-medium text-ink"
@@ -37,7 +36,7 @@ export function FeelingInput({ onSubmit, loading, disabled }: Props) {
           What&apos;s on your heart?
         </label>
         <div
-          className="inline-flex rounded-full border border-line bg-surface p-0.5 text-xs font-medium"
+          className="inline-flex max-w-full flex-wrap rounded-full border border-line bg-surface p-0.5 text-xs font-medium"
           role="group"
           aria-label="Input language"
         >
@@ -46,7 +45,7 @@ export function FeelingInput({ onSubmit, loading, disabled }: Props) {
               key={opt.id}
               type="button"
               onClick={() => setLanguage(opt.id)}
-              className={`rounded-full px-2.5 py-1 ${
+              className={`rounded-full px-2 py-1 ${
                 language === opt.id
                   ? "bg-brand text-white"
                   : "text-ink-soft hover:text-ink"
@@ -93,8 +92,9 @@ export function FeelingInput({ onSubmit, loading, disabled }: Props) {
             key={s.feeling}
             type="button"
             onClick={() => {
+              setLanguage("en");
               setValue(s.feeling);
-              submit(s.feeling);
+              onSubmit(s.feeling, "en");
             }}
             disabled={loading || disabled}
             className="rounded-full border border-line bg-gold-soft/50 px-3 py-1.5 text-xs font-medium text-ink transition hover:border-gold hover:bg-gold-soft disabled:opacity-50"

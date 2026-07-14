@@ -40,15 +40,22 @@ export async function POST(req: Request) {
     );
   }
 
-  const langId = isLocalLanguageId(body.language) ? body.language : "tw";
-  const langConfig = getLanguage(langId);
-  // Prefer this language's TTS; for proxied langs like Fante, khayaTts may be "tw"
-  const ttsCode = langConfig.khayaTts;
+  const langId = isLocalLanguageId(body.language) ? body.language : body.language;
+  const langConfig = isLocalLanguageId(langId)
+    ? getLanguage(langId)
+    : getLanguage("tw");
+  // Prefer configured TTS code; allow raw Khaya codes as fallback attempts
+  const ttsCode =
+    langConfig.khayaTts ||
+    (typeof body.language === "string" &&
+    ["tw", "ee", "ki", "gaa", "dag", "kus", "fat"].includes(body.language)
+      ? body.language
+      : null);
 
   if (!ttsCode) {
     return NextResponse.json(
       {
-        error: `Spoken audio is not available for ${langConfig.name} yet (Khaya TTS covers Twi, Ewe, and Gĩkũyũ today). You can still read the verse.`,
+        error: `Spoken audio is not available for ${langConfig.name} yet. Khaya TTS is wired for Twi, Ewe, and Gĩkũyũ (and will use Twi voice for Fante text when set). You can still read the verse.`,
         code: "TTS_UNSUPPORTED",
       },
       { status: 422 },

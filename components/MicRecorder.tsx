@@ -40,8 +40,9 @@ function getSpeechRecognition():
 }
 
 /**
- * English → Web Speech API (client).
- * Twi/Ewe → MediaRecorder → POST /api/transcribe (Khaya ASR).
+ * English → Web Speech.
+ * Khaya ASR languages → MediaRecorder → /api/transcribe.
+ * Type-only languages → gentle prompt to type.
  */
 export function MicRecorder({ language, onTranscript, disabled }: Props) {
   const input = getInputLanguage(language);
@@ -101,7 +102,9 @@ export function MicRecorder({ language, onTranscript, disabled }: Props) {
 
   const startKhaya = useCallback(async () => {
     if (!input.khayaAsr) {
-      setStatus("Voice input for this language is not ready — type instead.");
+      setStatus(
+        `Voice input for ${input.label} isn’t available yet — type in ${input.label}; Khaya will translate.`,
+      );
       return;
     }
     if (!navigator.mediaDevices?.getUserMedia) {
@@ -163,7 +166,7 @@ export function MicRecorder({ language, onTranscript, disabled }: Props) {
       setStatus("Mic permission denied — type instead.");
       setListening(false);
     }
-  }, [onTranscript, input.khayaAsr]);
+  }, [onTranscript, input.khayaAsr, input.label]);
 
   const stopKhaya = useCallback(() => {
     if (mediaRecorderRef.current?.state === "recording") {

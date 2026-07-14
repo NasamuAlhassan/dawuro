@@ -6,36 +6,32 @@ import {
   hasGlooKeys,
 } from "@/lib/env";
 import { probeLanguageAccess } from "@/lib/youversion";
-import { LANGUAGE_LIST, hasAsr, hasVoice } from "@/lib/languages";
+import {
+  LANGUAGE_LIST,
+  hasAsr,
+  hasKhaya,
+  hasVoice,
+  usesKhayaLocalText,
+} from "@/lib/languages";
 
-/**
- * Confirms env keys and language catalogue capabilities.
- * Never returns secret values.
- */
 export async function GET() {
   const missing = getMissingEnvKeys();
   const coreOk = hasCoreKeys();
 
   let twiAccess: { ok: boolean; message: string } | null = null;
-  let languagesProbe: Record<string, { ok: boolean; message: string }> | null =
-    null;
+  let khayaLocal: { ok: boolean; message: string } | null = null;
 
   if (process.env.YVP_APP_KEY?.trim()) {
-    const [tw, ee, gaa] = await Promise.all([
+    const [tw, kus] = await Promise.all([
       probeLanguageAccess("tw"),
-      probeLanguageAccess("ee"),
-      probeLanguageAccess("gaa"),
+      probeLanguageAccess("kus"),
     ]);
     twiAccess = { ok: tw.ok, message: tw.message };
-    languagesProbe = {
-      tw: { ok: tw.ok, message: tw.message },
-      ee: { ok: ee.ok, message: ee.message },
-      gaa: { ok: gaa.ok, message: gaa.message },
-    };
+    khayaLocal = { ok: kus.ok, message: kus.message };
   }
 
   return NextResponse.json({
-    ok: coreOk && (twiAccess?.ok ?? false),
+    ok: coreOk && (twiAccess?.ok || khayaLocal?.ok || false),
     app: process.env.NEXT_PUBLIC_APP_NAME || "Dawuro",
     keys: {
       corePresent: coreOk,
@@ -49,26 +45,26 @@ export async function GET() {
       label: l.label,
       name: l.name,
       region: l.region,
+      localSource: l.bibleId ? "youversion" : "khaya",
       bibleId: l.bibleId ?? null,
-      proxied: Boolean(l.scriptureProxy && !l.bibleId),
       tts: hasVoice(l),
       asr: hasAsr(l),
       translate: Boolean(l.khayaTranslate),
+      khaya: hasKhaya(l),
     })),
     voice: {
       tts: LANGUAGE_LIST.filter(hasVoice).map((l) => l.id),
       asr: LANGUAGE_LIST.filter(hasAsr).map((l) => l.id),
+      khayaLocalText: LANGUAGE_LIST.filter(usesKhayaLocalText).map((l) => l.id),
     },
     twiAccess,
-    languages: languagesProbe,
+    kusaalPath: khayaLocal,
     notes: [
+      "YouVersion Bible when available; else EN from YouVersion + Khaya local text (Kusaal, Ga, Dagbani, Fante, Luo, Kimeru).",
+      "Khaya ASR (verified): Twi, Ewe, Ga, Dagbani. TTS (verified): Twi, Ewe, Gĩkũyũ; Fante uses Twi voice model.",
       !hasGlooKeys()
         ? "Gloo keys optional — reflection deferred until credentials are added."
         : null,
-      twiAccess && !twiAccess.ok
-        ? "Accept Biblica Fast-track license at platform.youversion.com for local-language Bibles."
-        : null,
-      "Khaya TTS (verified): Twi, Ewe, Gĩkũyũ. Khaya ASR (verified): Twi, Ewe, Ga, Dagbani.",
     ].filter(Boolean),
   });
 }

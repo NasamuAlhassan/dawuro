@@ -1,21 +1,27 @@
 import { NextResponse } from "next/server";
 import { getBilingualPassage, YouVersionError } from "@/lib/youversion";
 import { mapFeelingToReference } from "@/lib/verses";
-import { getLanguage, isLocalLanguageId } from "@/lib/languages";
+import {
+  getInputLanguage,
+  getLanguage,
+  isLocalLanguageId,
+} from "@/lib/languages";
+import { translateToEnglish } from "@/lib/khaya";
 
 export const runtime = "nodejs";
 
 type Body = {
   feeling?: string;
-  /** Optional explicit USFM override, e.g. "PHP.4.6-7". */
   reference?: string;
-  /** Local Scripture language: tw | ee | yo | ha | ig | sw | ki | fr */
+  /** Scripture / local card language */
   language?: string;
+  /** Feeling language: en | tw | ee | gaa | kus | … */
+  inputLanguage?: string;
 };
 
 /**
- * POST { feeling, language? } | { reference, language? }
- * → bilingual VerseResult from YouVersion (EN + selected local Bible).
+ * POST { feeling, language?, inputLanguage? }
+ * → YouVersion EN + (YouVersion local Bible OR Khaya local render)
  */
 export async function POST(req: Request) {
   let body: Body;
@@ -28,17 +34,41 @@ export async function POST(req: Request) {
     );
   }
 
-  const feeling = body.feeling?.trim() || "";
+  const feelingRaw = body.feeling?.trim() || "";
   const explicit = body.reference?.trim();
   const language = isLocalLanguageId(body.language)
     ? body.language
     : getLanguage(body.language).id;
 
-  if (!feeling && !explicit) {
+  if (!feelingRaw && !explicit) {
     return NextResponse.json(
       { error: "Provide a feeling or a reference." },
       { status: 400 },
     );
+  }
+
+  let feelingForMap = feelingRaw;
+  let feelingEnglish: string | null = null;
+
+  if (feelingRaw && !explicit) {
+    const inputId = body.inputLanguage || "en";
+    if (inputId !== "en") {
+      const inputOpt = getInputLanguage(inputId);
+      const translateCode =
+        inputOpt.khayaTranslate ||
+        getLanguage(inputId).khayaTranslate;
+      if (translateCode) {
+        try {
+          const en = await translateToEnglish(feelingRaw, translateCode);
+          if (en?.trim()) {
+            feelingEnglish = en.trim();
+            feelingForMap = feelingEnglish;
+          }
+        } catch (e) {
+          console.warn("[/api/verse] feeling → EN translate failed", e);
+        }
+      }
+    }
   }
 
   const mapped = explicit
@@ -47,7 +77,7 @@ export async function POST(req: Request) {
         reference: explicit,
         score: 1,
       }
-    : mapFeelingToReference(feeling);
+    : mapFeelingToReference(feelingForMap);
 
   try {
     const verse = await getBilingualPassage(mapped.reference, language);
@@ -57,7 +87,8 @@ export async function POST(req: Request) {
         id: mapped.topic.id,
         label: mapped.topic.label,
       },
-      feeling: feeling || null,
+      feeling: feelingRaw || null,
+      feelingEnglish,
       language,
     });
   } catch (e) {

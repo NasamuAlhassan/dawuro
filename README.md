@@ -27,7 +27,7 @@ English (BSB) always appears as the companion side. **Scripture is never machine
 | `xsm` | Kasem | NT #1303 | — | type |
 | `sil` | Sisaala | #2553 | — | type |
 
-\* No dedicated Bible on the Platform yet — we show a **published** related text (never MT) with a clear note. Khaya still powers feeling input / reflection translate where available.
+\* **No YouVersion Bible** → English verse from YouVersion (authoritative) + **local text via Khaya translate**. Feelings in that language can use ASR (when available) or type → Khaya → English for verse mapping. Reflections can also be Khaya-translated. Clear UI label: not a published Bible.
 
 #### Wider region
 
