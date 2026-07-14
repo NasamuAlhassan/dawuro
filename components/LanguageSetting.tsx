@@ -1,11 +1,16 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import {
   DEFAULT_LOCAL_LANGUAGE,
   LANGUAGE_LIST,
+  REGION_LABELS,
   STORAGE_KEY_LANGUAGE,
+  hasAsr,
+  hasVoice,
   isLocalLanguageId,
+  type LanguageConfig,
+  type LanguageRegion,
   type LocalLanguageId,
 } from "@/lib/languages";
 
@@ -25,54 +30,110 @@ type Props = {
   onChange: (id: LocalLanguageId) => void;
 };
 
+function groupByRegion(list: LanguageConfig[]) {
+  const order: LanguageRegion[] = [
+    "ghana",
+    "west-africa",
+    "east-africa",
+    "other",
+  ];
+  const map = new Map<LanguageRegion, LanguageConfig[]>();
+  for (const lang of list) {
+    const arr = map.get(lang.region) || [];
+    arr.push(lang);
+    map.set(lang.region, arr);
+  }
+  return order
+    .filter((r) => (map.get(r) || []).length > 0)
+    .map((r) => ({ region: r, languages: map.get(r)! }));
+}
+
 /**
- * Scripture language picker — which YouVersion Bible pairs with English.
+ * Scripture language picker — Ghana first, voice-capable marked ♪
  */
 export function LanguageSetting({ value, onChange }: Props) {
+  const groups = useMemo(() => groupByRegion(LANGUAGE_LIST), []);
+
   return (
-    <div className="flex flex-col gap-1.5">
-      <p className="text-[11px] font-medium uppercase tracking-wide text-ink-soft">
-        Scripture language
-      </p>
-      <p className="text-[11px] text-ink-soft">
-        English always shows alongside. Pick the language of the heart.
-      </p>
-      <div className="flex flex-wrap gap-1.5" role="listbox" aria-label="Scripture language">
-        {LANGUAGE_LIST.map((lang) => {
-          const selected = value === lang.id;
-          return (
-            <button
-              key={lang.id}
-              type="button"
-              role="option"
-              aria-selected={selected}
-              onClick={() => {
-                onChange(lang.id);
-                try {
-                  window.localStorage.setItem(STORAGE_KEY_LANGUAGE, lang.id);
-                } catch {
-                  /* ignore */
-                }
-              }}
-              className={`rounded-full border px-3 py-1.5 text-xs font-medium transition ${
-                selected
-                  ? "border-brand bg-brand text-white"
-                  : "border-line bg-surface text-ink-soft hover:border-gold hover:text-ink"
-              }`}
-              title={lang.title}
-            >
-              {lang.label}
-              {lang.khayaTts ? (
-                <span className="ml-1 opacity-70" aria-hidden>
-                  ♪
-                </span>
-              ) : null}
-            </button>
-          );
-        })}
+    <div className="flex flex-col gap-3">
+      <div>
+        <p className="text-[11px] font-medium uppercase tracking-wide text-ink-soft">
+          Scripture language
+        </p>
+        <p className="mt-0.5 text-[11px] text-ink-soft">
+          English always shows alongside. Ghanaian languages listed first.
+          Scripture is never machine-translated.
+        </p>
       </div>
-      <p className="text-[10px] text-ink-soft">
-        ♪ = can hear this language aloud (Khaya TTS)
+
+      {groups.map(({ region, languages }) => (
+        <div key={region} className="space-y-1.5">
+          <p className="text-[10px] font-semibold uppercase tracking-wider text-gold">
+            {REGION_LABELS[region]}
+          </p>
+          <div
+            className="flex flex-wrap gap-1.5"
+            role="listbox"
+            aria-label={`${REGION_LABELS[region]} languages`}
+          >
+            {languages.map((lang) => {
+              const selected = value === lang.id;
+              const voice = hasVoice(lang);
+              const asr = hasAsr(lang);
+              return (
+                <button
+                  key={lang.id}
+                  type="button"
+                  role="option"
+                  aria-selected={selected}
+                  onClick={() => {
+                    onChange(lang.id);
+                    try {
+                      window.localStorage.setItem(
+                        STORAGE_KEY_LANGUAGE,
+                        lang.id,
+                      );
+                    } catch {
+                      /* ignore */
+                    }
+                  }}
+                  className={`rounded-full border px-3 py-1.5 text-xs font-medium transition ${
+                    selected
+                      ? "border-brand bg-brand text-white"
+                      : "border-line bg-surface text-ink-soft hover:border-gold hover:text-ink"
+                  }`}
+                  title={[
+                    lang.title || lang.name,
+                    voice ? "Hear aloud" : null,
+                    asr ? "Speak input" : null,
+                    lang.proxyNote || null,
+                  ]
+                    .filter(Boolean)
+                    .join(" · ")}
+                >
+                  {lang.label}
+                  {voice && (
+                    <span className="ml-1 opacity-80" aria-label="voice">
+                      ♪
+                    </span>
+                  )}
+                  {asr && !voice && (
+                    <span className="ml-1 opacity-70" aria-label="mic">
+                      🎤
+                    </span>
+                  )}
+                </button>
+              );
+            })}
+          </div>
+        </div>
+      ))}
+
+      <p className="text-[10px] leading-relaxed text-ink-soft">
+        <span className="font-medium">♪</span> Hear verse aloud (Khaya TTS) ·{" "}
+        <span className="font-medium">🎤</span> Speak feelings (Khaya ASR).
+        Languages without a YouVersion Bible yet still appear — we show a
+        related published text and never invent Scripture.
       </p>
     </div>
   );

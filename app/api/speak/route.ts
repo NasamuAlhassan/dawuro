@@ -42,12 +42,13 @@ export async function POST(req: Request) {
 
   const langId = isLocalLanguageId(body.language) ? body.language : "tw";
   const langConfig = getLanguage(langId);
+  // Prefer this language's TTS; for proxied langs like Fante, khayaTts may be "tw"
   const ttsCode = langConfig.khayaTts;
 
   if (!ttsCode) {
     return NextResponse.json(
       {
-        error: `Spoken audio is not available for ${langConfig.name} yet. You can still read the verse.`,
+        error: `Spoken audio is not available for ${langConfig.name} yet (Khaya TTS covers Twi, Ewe, and Gĩkũyũ today). You can still read the verse.`,
         code: "TTS_UNSUPPORTED",
       },
       { status: 422 },

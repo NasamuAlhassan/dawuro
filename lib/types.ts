@@ -21,6 +21,9 @@ export type VerseResult = {
   /** Selected local-language Scripture (Twi, Ewe, Yoruba, …) — never MT'd */
   local: PassageSide;
   localLanguageId: LocalLanguageId;
+  /** When true, local text is a related published Bible (e.g. Twi for Kusaal) */
+  scriptureProxied?: boolean;
+  proxyNote?: string;
   /**
    * @deprecated Use `local` — kept briefly for any residual callers.
    * Prefer local always.

@@ -35,9 +35,15 @@ export function VerseCard({
           {verse.humanReference}
         </p>
         <p className="text-[10px] font-medium uppercase tracking-wide text-ink-soft">
-          {lang.label}
+          {local.label || lang.label}
         </p>
       </div>
+
+      {verse.proxyNote && (
+        <p className="mt-2 rounded-lg bg-gold-soft/50 px-2.5 py-1.5 text-[11px] leading-snug text-ink-soft">
+          {verse.proxyNote}
+        </p>
+      )}
 
       <p
         className="mt-4 text-lg leading-relaxed text-twi"

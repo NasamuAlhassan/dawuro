@@ -6,30 +6,31 @@ import {
   hasGlooKeys,
 } from "@/lib/env";
 import { probeLanguageAccess } from "@/lib/youversion";
-import { LANGUAGE_LIST } from "@/lib/languages";
+import { LANGUAGE_LIST, hasAsr, hasVoice } from "@/lib/languages";
 
 /**
- * Confirms env keys and (when YVP is set) local-language license access.
+ * Confirms env keys and language catalogue capabilities.
  * Never returns secret values.
  */
 export async function GET() {
   const missing = getMissingEnvKeys();
   const coreOk = hasCoreKeys();
 
-  let languages: Record<string, { ok: boolean; message: string }> | null =
-    null;
   let twiAccess: { ok: boolean; message: string } | null = null;
+  let languagesProbe: Record<string, { ok: boolean; message: string }> | null =
+    null;
 
   if (process.env.YVP_APP_KEY?.trim()) {
-    // Probe Twi first (primary); sample one more for license status
-    const [tw, ee] = await Promise.all([
+    const [tw, ee, gaa] = await Promise.all([
       probeLanguageAccess("tw"),
       probeLanguageAccess("ee"),
+      probeLanguageAccess("gaa"),
     ]);
     twiAccess = { ok: tw.ok, message: tw.message };
-    languages = {
+    languagesProbe = {
       tw: { ok: tw.ok, message: tw.message },
       ee: { ok: ee.ok, message: ee.message },
+      gaa: { ok: gaa.ok, message: gaa.message },
     };
   }
 
@@ -47,12 +48,19 @@ export async function GET() {
       id: l.id,
       label: l.label,
       name: l.name,
-      bibleId: l.bibleId,
-      tts: Boolean(l.khayaTts),
-      asr: Boolean(l.khayaAsr),
+      region: l.region,
+      bibleId: l.bibleId ?? null,
+      proxied: Boolean(l.scriptureProxy && !l.bibleId),
+      tts: hasVoice(l),
+      asr: hasAsr(l),
+      translate: Boolean(l.khayaTranslate),
     })),
+    voice: {
+      tts: LANGUAGE_LIST.filter(hasVoice).map((l) => l.id),
+      asr: LANGUAGE_LIST.filter(hasAsr).map((l) => l.id),
+    },
     twiAccess,
-    languages,
+    languages: languagesProbe,
     notes: [
       !hasGlooKeys()
         ? "Gloo keys optional — reflection deferred until credentials are added."
@@ -60,6 +68,7 @@ export async function GET() {
       twiAccess && !twiAccess.ok
         ? "Accept Biblica Fast-track license at platform.youversion.com for local-language Bibles."
         : null,
+      "Khaya TTS (verified): Twi, Ewe, Gĩkũyũ. Khaya ASR (verified): Twi, Ewe, Ga, Dagbani.",
     ].filter(Boolean),
   });
 }

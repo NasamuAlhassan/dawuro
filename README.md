@@ -7,20 +7,42 @@ Speak or type a feeling → receive a real Bible verse in **English + your langu
 hear it aloud (where TTS is available) → get a short faith-safe reflection → share an image + audio card on WhatsApp.  
 **The receiver needs no app.**
 
-### Scripture languages (YouVersion)
-
-| Code | Language | Bible | Hear aloud (Khaya TTS) |
-|------|----------|-------|-------------------------|
-| `tw` | Asante Twi | ASNA #2094 | Yes |
-| `ee` | Ewe | ECS #1613 | Yes |
-| `yo` | Yoruba | YCB #911 | Text only |
-| `ha` | Hausa | HCB #1614 | Text only |
-| `ig` | Igbo | ICB #1624 | Text only |
-| `sw` | Kiswahili | NEN #1627 | Text only |
-| `ki` | Gĩkũyũ (Kikuyu) | GKY #1622 | Yes |
-| `fr` | French | LSG #93 | Text only |
+### Languages
 
 English (BSB) always appears as the companion side. **Scripture is never machine-translated.**
+
+#### Ghana (priority)
+
+| Code | Language | Scripture (YouVersion) | Hear ♪ | Speak 🎤 |
+|------|----------|------------------------|--------|----------|
+| `tw` | Asante Twi | ASNA #2094 | Yes | Yes |
+| `ak` | Akuapem Twi | AKNA #1631 | Yes (Twi TTS) | Yes |
+| `ee` | Ewe | ECS #1613 | Yes | Yes |
+| `gaa` | Ga | proxy → Asante Twi* | — | Yes |
+| `fat` | Fante | Asante Twi (Akan)* | Yes (Twi TTS) | — |
+| `dag` | Dagbani | proxy → Asante Twi* | — | Yes |
+| `kus` | Kusaal | proxy → Asante Twi* | — | type |
+| `gur` | Gurene (Ninkare) | NT #1323 | — | type |
+| `gjn` | Gonja | #1729 | — | type |
+| `xsm` | Kasem | NT #1303 | — | type |
+| `sil` | Sisaala | #2553 | — | type |
+
+\* No dedicated Bible on the Platform yet — we show a **published** related text (never MT) with a clear note. Khaya still powers feeling input / reflection translate where available.
+
+#### Wider region
+
+| Code | Language | Scripture | Hear ♪ |
+|------|----------|-----------|--------|
+| `yo` | Yoruba | YCB #911 | — |
+| `ha` | Hausa | HCB #1614 | — |
+| `ig` | Igbo | ICB #1624 | — |
+| `ki` | Gĩkũyũ | GKY #1622 | Yes |
+| `sw` | Kiswahili | Neno #1627 | — |
+| `luo` | Dholuo | proxy → Swahili* | — |
+| `mer` | Kimeru | proxy → Gĩkũyũ* | — |
+| `fr` | Français | Segond #93 | — |
+
+**Khaya voice (verified on API):** TTS = Twi, Ewe, Gĩkũyũ · ASR = Twi, Ewe, Ga, Dagbani · Translate includes Kusaal, Fante, Gurene, and more.
 
 ---
 

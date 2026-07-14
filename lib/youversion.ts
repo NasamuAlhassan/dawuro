@@ -12,6 +12,7 @@ import type { VerseResult } from "@/lib/types";
 import {
   ENGLISH_BIBLE,
   getLanguage,
+  resolveScriptureLanguage,
   type LocalLanguageId,
   type LanguageConfig,
 } from "@/lib/languages";
@@ -88,7 +89,6 @@ async function yvpFetch<T>(path: string, languageHint?: string): Promise<T> {
   return res.json() as Promise<T>;
 }
 
-/** Fetch a single passage as plain text. */
 export async function getPassage(
   versionId: number,
   usfm: string,
@@ -101,12 +101,10 @@ export async function getPassage(
   );
 }
 
-/** Bible metadata including copyright for attribution. */
 export async function getBibleMeta(versionId: number): Promise<BibleMeta> {
   return yvpFetch<BibleMeta>(`/bibles/${versionId}`);
 }
 
-/** Day-of-year for VOTD (1–365/366). */
 export function dayOfYear(date = new Date()): number {
   const start = new Date(date.getFullYear(), 0, 0);
   const diff = date.getTime() - start.getTime();
@@ -114,7 +112,6 @@ export function dayOfYear(date = new Date()): number {
   return Math.floor(diff / oneDay);
 }
 
-/** Verse of the Day USFM reference from YouVersion. */
 export async function getVerseOfTheDayReference(
   day?: number,
 ): Promise<string> {
@@ -145,27 +142,41 @@ async function resolveCopyright(
 /**
  * Fetch the same USFM reference in English (BSB) + selected local language.
  * Scripture text is never machine-translated — both come from YouVersion.
+ * Proxied languages use a related published Bible with an explicit note.
  */
 export async function getBilingualPassage(
   usfm: string,
   localLanguageId: LocalLanguageId | string = "tw",
 ): Promise<VerseResult> {
-  const lang = getLanguage(localLanguageId);
+  const { display, source, isProxied } =
+    resolveScriptureLanguage(localLanguageId);
+
+  if (!source.bibleId) {
+    throw new YouVersionError(
+      `No YouVersion Bible configured for ${display.name}.`,
+      400,
+      "NO_BIBLE",
+    );
+  }
 
   const [en, local, enCopyright, localCopyright] = await Promise.all([
     getPassage(ENGLISH_BIBLE.id, usfm, "English"),
-    getPassage(lang.bibleId, usfm, lang.name),
+    getPassage(source.bibleId, usfm, source.name),
     resolveCopyright(ENGLISH_BIBLE.id, ENGLISH_BIBLE.copyrightFallback),
-    resolveCopyright(lang.bibleId, lang.copyrightFallback),
+    resolveCopyright(source.bibleId, source.copyrightFallback),
   ]);
 
-  const human =
-    en.reference || local.reference || usfmToHuman(usfm);
+  const human = en.reference || local.reference || usfmToHuman(usfm);
+
+  // Label: show user's language name; if proxied, note the actual Bible language
+  const localLabel = isProxied
+    ? `${display.label} · ${source.label} text`
+    : display.label;
 
   const localSide = {
-    languageId: lang.id,
-    label: lang.label,
-    versionId: String(lang.bibleId),
+    languageId: display.id,
+    label: localLabel,
+    versionId: String(source.bibleId),
     text: cleanPassageText(local.content),
     copyright: localCopyright,
   };
@@ -183,13 +194,16 @@ export async function getBilingualPassage(
     humanReference: human,
     english: englishSide,
     local: localSide,
-    localLanguageId: lang.id,
-    // Backward-compatible alias while components migrate
+    localLanguageId: display.id,
+    scriptureProxied: isProxied,
+    proxyNote: isProxied
+      ? display.proxyNote ||
+        `${display.name} Bible not on YouVersion yet — showing ${source.name} (published text, not machine-translated).`
+      : undefined,
     twi: localSide,
   };
 }
 
-/** Strip excessive whitespace; keep readable paragraphs. */
 function cleanPassageText(raw: string): string {
   return raw
     .replace(/\r\n/g, "\n")
@@ -198,7 +212,6 @@ function cleanPassageText(raw: string): string {
     .trim();
 }
 
-/** First line or short tag for UI footers. */
 function shortCopyright(
   full: string | undefined,
   fallback: string,
@@ -209,34 +222,37 @@ function shortCopyright(
   return first.length > 120 ? `${first.slice(0, 117)}…` : first;
 }
 
-/**
- * Probe whether a local-language Bible is readable with the current app key.
- */
 export async function probeLanguageAccess(
   languageId: LocalLanguageId | string = "tw",
 ): Promise<{ ok: boolean; message: string; language: LanguageConfig }> {
-  const lang = getLanguage(languageId);
+  const { display, source } = resolveScriptureLanguage(languageId);
+  if (!source.bibleId) {
+    return {
+      ok: false,
+      message: `No Bible ID for ${display.name}`,
+      language: display,
+    };
+  }
   try {
-    await getPassage(lang.bibleId, "JHN.3.16", lang.name);
+    await getPassage(source.bibleId, "JHN.3.16", source.name);
     return {
       ok: true,
-      message: `${lang.name} (${lang.abbreviation}) passage access OK`,
-      language: lang,
+      message: `${display.name} via ${source.abbreviation || source.name} OK`,
+      language: display,
     };
   } catch (e) {
     if (e instanceof YouVersionError && e.status === 403) {
       return {
         ok: false,
-        message: `${lang.name} blocked — accept the Biblica Fast-track Bible License at platform.youversion.com.`,
-        language: lang,
+        message: `${source.name} blocked — accept the Biblica Fast-track Bible License at platform.youversion.com.`,
+        language: display,
       };
     }
     const msg = e instanceof Error ? e.message : "Unknown error";
-    return { ok: false, message: msg, language: lang };
+    return { ok: false, message: msg, language: display };
   }
 }
 
-/** @deprecated Use probeLanguageAccess */
 export async function probeTwiAccess(): Promise<{
   ok: boolean;
   message: string;
