@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import type { VerseResult } from "@/lib/types";
 import { VerseCard } from "@/components/VerseCard";
+import { ShareSheet } from "@/components/ShareSheet";
 
 type VotdResponse = {
   day: number;
@@ -13,6 +14,7 @@ type VotdResponse = {
 
 /**
  * Home VOTD widget — loads on open from /api/votd.
+ * "Share as voice note" produces image + Twi audio for WhatsApp.
  */
 export function VerseOfTheDay() {
   const [data, setData] = useState<VotdResponse | null>(null);
@@ -85,7 +87,7 @@ export function VerseOfTheDay() {
   if (!data?.verse) return null;
 
   return (
-    <section className="space-y-2">
+    <section className="space-y-3">
       <div className="flex items-baseline justify-between px-0.5">
         <p className="text-xs font-medium uppercase tracking-wide text-gold">
           Verse of the Day
@@ -93,6 +95,10 @@ export function VerseOfTheDay() {
         <p className="text-[11px] text-ink-soft">Day {data.day}</p>
       </div>
       <VerseCard verse={data.verse} />
+      <ShareSheet
+        verse={data.verse}
+        buttonLabel="Share as voice note"
+      />
     </section>
   );
 }

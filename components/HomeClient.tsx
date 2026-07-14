@@ -13,6 +13,7 @@ import {
   TraditionSetting,
   useTradition,
 } from "@/components/TraditionSetting";
+import { ShareSheet } from "@/components/ShareSheet";
 
 type VerseApiResponse = {
   verse?: VerseResult;
@@ -209,6 +210,8 @@ export function HomeClient() {
             {!reflectLoading && !reflection && reflectNote && (
               <ReflectionSkipped reason={reflectNote} />
             )}
+
+            <ShareSheet verse={verse} buttonLabel="Share on WhatsApp" />
           </div>
         )}
       </section>
