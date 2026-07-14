@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import type { LocalLanguageId } from "@/lib/languages";
 import { getLanguage } from "@/lib/languages";
+import { IconLoader, IconPause, IconPlay } from "@/components/ui/Icons";
 
 type Props = {
   text: string;
@@ -18,7 +19,7 @@ export function AudioPlayer({
   label,
 }: Props) {
   const lang = getLanguage(language);
-  const playLabel = label || `Hear in ${lang.label}`;
+  const playLabel = label || `Play in ${lang.label}`;
   const canTts = Boolean(lang.khayaTts);
 
   const audioRef = useRef<HTMLAudioElement | null>(null);
@@ -50,8 +51,8 @@ export function AudioPlayer({
 
   if (!canTts && !proAudioUrl) {
     return (
-      <p className="rounded-xl bg-bg-deep/40 px-3 py-2 text-xs text-ink-soft">
-        Audio not available for {lang.name} yet — you can still read the verse.
+      <p className="text-[12px] text-ink-faint">
+        Audio not available for {lang.name} yet.
       </p>
     );
   }
@@ -77,7 +78,7 @@ export function AudioPlayer({
         const json = (await res.json().catch(() => ({}))) as {
           error?: string;
         };
-        setError(json.error || "Audio unavailable right now.");
+        setError(json.error || "Audio unavailable.");
         return null;
       }
 
@@ -87,7 +88,7 @@ export function AudioPlayer({
           setReadyUrl(json.audioUrl);
           return json.audioUrl;
         }
-        setError("Audio unavailable right now.");
+        setError("Audio unavailable.");
         return null;
       }
 
@@ -98,7 +99,7 @@ export function AudioPlayer({
       setReadyUrl(url);
       return url;
     } catch {
-      setError("Could not load audio. You can still read the verse.");
+      setError("Could not load audio.");
       return null;
     } finally {
       setLoading(false);
@@ -121,7 +122,7 @@ export function AudioPlayer({
       audioRef.current.addEventListener("pause", () => setPlaying(false));
       audioRef.current.addEventListener("play", () => setPlaying(true));
       audioRef.current.addEventListener("error", () => {
-        setError("Playback failed. You can still read the verse.");
+        setError("Playback failed.");
         setPlaying(false);
       });
     } else if (audioRef.current.src !== url) {
@@ -132,7 +133,7 @@ export function AudioPlayer({
       await audioRef.current.play();
       setPlaying(true);
     } catch {
-      setError("Tap again to play — browsers block autoplay.");
+      setError("Tap again to play.");
       setPlaying(false);
     }
   }
@@ -143,19 +144,28 @@ export function AudioPlayer({
         type="button"
         onClick={toggle}
         disabled={loading || !text}
-        className="inline-flex min-h-11 w-full items-center justify-center gap-2 rounded-2xl border border-gold/40 bg-gold-soft/70 px-4 text-sm font-semibold text-ink transition hover:bg-gold-soft disabled:cursor-not-allowed disabled:opacity-50"
+        className="inline-flex min-h-10 w-full items-center justify-center gap-2 rounded-[var(--radius-sm)] border border-line bg-surface px-4 text-[13px] font-medium text-ink transition hover:border-line-strong hover:bg-surface-2 disabled:cursor-not-allowed disabled:opacity-50"
         aria-label={playing ? "Pause audio" : playLabel}
       >
         {loading ? (
-          <span>Preparing audio…</span>
+          <>
+            <IconLoader size={16} className="dawuro-spin" />
+            Preparing audio
+          </>
         ) : playing ? (
-          <span>Pause</span>
+          <>
+            <IconPause size={16} />
+            Pause
+          </>
         ) : (
-          <span>▶ {playLabel}</span>
+          <>
+            <IconPlay size={16} />
+            {playLabel}
+          </>
         )}
       </button>
       {error && (
-        <p className="text-xs text-ink-soft" role="status">
+        <p className="text-[12px] text-ink-soft" role="status">
           {error}
         </p>
       )}

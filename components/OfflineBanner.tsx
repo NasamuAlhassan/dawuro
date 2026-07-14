@@ -2,9 +2,6 @@
 
 import { useEffect, useState } from "react";
 
-/**
- * Lightweight offline notice — keeps the UI honest on slow/spotty networks.
- */
 export function OfflineBanner() {
   const [offline, setOffline] = useState(false);
 
@@ -25,11 +22,10 @@ export function OfflineBanner() {
 
   return (
     <div
-      className="bg-ink px-4 py-2 text-center text-xs font-medium text-gold-soft"
+      className="bg-ink px-4 py-2 text-center text-[12px] font-medium text-surface-2"
       role="status"
     >
-      You&apos;re offline. Cached content may still show; new verses need a
-      connection.
+      You&apos;re offline. New verses need a connection.
     </div>
   );
 }

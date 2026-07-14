@@ -25,20 +25,15 @@ export function FeelingInput({ onSubmit, loading, disabled }: Props) {
 
   return (
     <div className="space-y-4">
-      <div className="flex flex-col gap-2">
-        <div className="flex items-center justify-between gap-2">
-          <label
-            htmlFor="feeling"
-            className="text-sm font-semibold text-ink"
-          >
-            Speak or type
-          </label>
-          <span className="text-[10px] text-ink-soft">
-            Input: {input.label}
-          </span>
-        </div>
+      <div>
+        <label
+          htmlFor="feeling"
+          className="text-[13px] font-medium text-ink"
+        >
+          How are you feeling?
+        </label>
         <div
-          className="flex max-w-full flex-wrap gap-1"
+          className="mt-2 flex flex-wrap gap-1.5"
           role="group"
           aria-label="Input language"
         >
@@ -47,10 +42,10 @@ export function FeelingInput({ onSubmit, loading, disabled }: Props) {
               key={opt.id}
               type="button"
               onClick={() => setLanguage(opt.id)}
-              className={`rounded-full px-2.5 py-1 text-[11px] font-semibold transition ${
+              className={`rounded-md px-2.5 py-1 text-[12px] font-medium transition ${
                 language === opt.id
-                  ? "bg-brand text-white shadow-sm"
-                  : "bg-surface text-ink-soft ring-1 ring-line hover:text-ink"
+                  ? "bg-ink text-surface-2"
+                  : "bg-transparent text-ink-soft ring-1 ring-line hover:text-ink"
               }`}
             >
               {opt.label}
@@ -59,22 +54,20 @@ export function FeelingInput({ onSubmit, loading, disabled }: Props) {
         </div>
       </div>
 
-      <div className="flex items-end gap-2">
-        <div className="min-w-0 flex-1">
-          <input
-            id="feeling"
-            type="text"
-            value={value}
-            onChange={(e) => setValue(e.target.value)}
-            onKeyDown={(e) => {
-              if (e.key === "Enter") submit(value);
-            }}
-            placeholder={input.placeholder}
-            disabled={loading || disabled}
-            className="min-h-12 w-full rounded-2xl border border-line bg-surface px-4 text-base text-ink shadow-sm placeholder:text-ink-soft/70 outline-none ring-brand/25 focus:ring-2 disabled:opacity-60"
-            autoComplete="off"
-          />
-        </div>
+      <div className="flex items-center gap-2">
+        <input
+          id="feeling"
+          type="text"
+          value={value}
+          onChange={(e) => setValue(e.target.value)}
+          onKeyDown={(e) => {
+            if (e.key === "Enter") submit(value);
+          }}
+          placeholder={input.placeholder}
+          disabled={loading || disabled}
+          className="min-h-11 flex-1 rounded-[var(--radius-sm)] border border-line bg-surface-2 px-3.5 text-[15px] text-ink placeholder:text-ink-faint outline-none focus:border-ink/30 disabled:opacity-60"
+          autoComplete="off"
+        />
         <MicRecorder
           language={language}
           disabled={loading || disabled}
@@ -86,12 +79,12 @@ export function FeelingInput({ onSubmit, loading, disabled }: Props) {
         type="button"
         onClick={() => submit(value)}
         disabled={loading || disabled || !value.trim()}
-        className="flex min-h-12 w-full items-center justify-center rounded-2xl bg-brand text-sm font-semibold text-white shadow-md transition hover:bg-brand-deep disabled:cursor-not-allowed disabled:opacity-45"
+        className="flex min-h-11 w-full items-center justify-center rounded-[var(--radius-sm)] bg-brand text-[14px] font-semibold text-white transition hover:bg-brand-deep disabled:cursor-not-allowed disabled:opacity-40"
       >
-        {loading ? "Finding your verse…" : "Find Scripture"}
+        {loading ? "Finding Scripture…" : "Find Scripture"}
       </button>
 
-      <div className="flex flex-wrap gap-2">
+      <div className="flex flex-wrap gap-1.5">
         {SUGGESTED_FEELINGS.map((s) => (
           <button
             key={s.feeling}
@@ -102,7 +95,7 @@ export function FeelingInput({ onSubmit, loading, disabled }: Props) {
               onSubmit(s.feeling, "en");
             }}
             disabled={loading || disabled}
-            className="rounded-full border border-line bg-surface/80 px-3 py-1.5 text-xs font-medium text-ink transition hover:border-gold hover:bg-gold-soft disabled:opacity-50"
+            className="rounded-md px-2.5 py-1 text-[12px] text-ink-soft ring-1 ring-line transition hover:bg-surface-2 hover:text-ink disabled:opacity-50"
           >
             {s.label}
           </button>

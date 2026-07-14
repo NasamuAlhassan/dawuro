@@ -13,13 +13,13 @@ import {
 } from "@/components/ReflectionBlock";
 import { ShareSheet } from "@/components/ShareSheet";
 import { fetchWithTimeout } from "@/lib/fetch-timeout";
+import { IconLoader } from "@/components/ui/Icons";
 
 type VerseApiResponse = {
   verse?: VerseResult;
   topic?: { id: string; label: string };
   feeling?: string | null;
   error?: string;
-  code?: string;
 };
 
 type ReflectApiResponse = {
@@ -77,7 +77,7 @@ export function HomeClient() {
       if (!res.ok || !json.reflection) {
         setReflectNote(
           json.error ||
-            "Reflection unavailable right now — the verse is still for you.",
+            "Reflection unavailable — the verse is still for you.",
         );
         return;
       }
@@ -104,8 +104,8 @@ export function HomeClient() {
     const langName = getLanguage(scriptureLang).name;
     setStatus(
       getLanguage(scriptureLang).bibleId
-        ? `Finding a word for you in ${langName}…`
-        : `Finding a word — English from YouVersion, ${langName} via Khaya…`,
+        ? `Finding Scripture in ${langName}…`
+        : `Finding Scripture — English from YouVersion, ${langName} via Khaya…`,
     );
 
     try {
@@ -144,29 +144,21 @@ export function HomeClient() {
   }
 
   return (
-    <div className="flex flex-1 flex-col gap-6">
-      {/* Hero */}
-      <section className="space-y-1">
-        <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-gold">
-          Akwaaba · Welcome
-        </p>
-        <h2
-          className="text-[1.75rem] font-semibold leading-tight tracking-tight text-ink"
+    <div className="flex flex-1 flex-col gap-7">
+      <header className="space-y-2">
+        <h1
+          className="text-[1.65rem] font-semibold leading-[1.2] tracking-[-0.02em] text-ink"
           style={{ fontFamily: "var(--font-display), serif" }}
         >
           What&apos;s on your heart?
-        </h2>
-        <p className="text-sm leading-relaxed text-ink-soft">
-          Speak or type a feeling. Receive Scripture in{" "}
-          <span className="font-medium text-ink">
-            {getLanguage(language).nativeName}
-          </span>{" "}
-          and English — ready to share.
+        </h1>
+        <p className="max-w-[34ch] text-[14px] leading-relaxed text-ink-soft">
+          Receive a verse in {getLanguage(language).nativeName} and English.
+          Hear it. Share it on WhatsApp.
         </p>
-      </section>
+      </header>
 
-      {/* Composer */}
-      <section className="dawuro-card-elevated p-4 sm:p-5">
+      <section className="dawuro-card p-4 sm:p-5">
         <FeelingInput
           onSubmit={(t, inputLang) => handleFeeling(t, inputLang)}
           loading={loading}
@@ -175,23 +167,23 @@ export function HomeClient() {
 
       {status && (
         <p
-          className="flex items-center gap-2 text-sm text-ink-soft"
+          className="flex items-center gap-2 text-[13px] text-ink-soft"
           aria-live="polite"
         >
-          <span className="inline-block h-2 w-2 animate-pulse rounded-full bg-brand" />
+          <IconLoader size={14} className="dawuro-spin text-brand" />
           {status}
         </p>
       )}
 
       {error && (
         <div
-          className="dawuro-rise rounded-2xl border border-brand/25 bg-gold-soft/50 px-4 py-3 text-sm text-ink"
+          className="dawuro-rise rounded-[var(--radius)] border border-brand/20 bg-surface-2 px-4 py-3 text-[13px] text-ink"
           role="alert"
         >
           <p>{error}</p>
           {(error.toLowerCase().includes("biblica") ||
             error.toLowerCase().includes("license")) && (
-            <p className="mt-2 text-xs text-ink-soft">
+            <p className="mt-2 text-[12px] text-ink-soft">
               Accept the Biblica Fast-track license at{" "}
               <a
                 href="https://platform.youversion.com/"
@@ -201,7 +193,7 @@ export function HomeClient() {
               >
                 platform.youversion.com
               </a>
-              , then try again.
+              .
             </p>
           )}
         </div>
@@ -210,15 +202,14 @@ export function HomeClient() {
       {verse && (
         <div className="dawuro-rise space-y-4">
           {(topicLabel || feeling) && (
-            <p className="text-xs text-ink-soft">
+            <p className="text-[12px] text-ink-soft">
               {topicLabel && (
-                <span className="rounded-full bg-brand/10 px-2.5 py-1 font-semibold text-brand">
-                  {topicLabel}
-                </span>
+                <span className="font-medium text-ink">{topicLabel}</span>
               )}
               {feeling && (
-                <span className="ml-2">
-                  for &ldquo;{feeling}&rdquo;
+                <span>
+                  {topicLabel ? " · " : ""}
+                  for “{feeling}”
                 </span>
               )}
             </p>
@@ -238,16 +229,6 @@ export function HomeClient() {
 
           <ShareSheet verse={verse} buttonLabel="Share on WhatsApp" />
         </div>
-      )}
-
-      {!verse && !loading && !error && (
-        <p className="text-center text-[12px] text-ink-soft">
-          Or open{" "}
-          <a href="/today" className="font-medium text-brand underline-offset-2 hover:underline">
-            Today
-          </a>{" "}
-          for the Verse of the Day.
-        </p>
       )}
     </div>
   );

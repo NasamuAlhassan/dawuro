@@ -5,12 +5,12 @@ import type { VerseResult } from "@/lib/types";
 import type { LocalLanguageId } from "@/lib/languages";
 import { VerseCard } from "@/components/VerseCard";
 import { ShareSheet } from "@/components/ShareSheet";
+import { IconLoader } from "@/components/ui/Icons";
 
 type VotdResponse = {
   day: number;
   verse: VerseResult;
   error?: string;
-  code?: string;
 };
 
 type Props = {
@@ -58,10 +58,10 @@ export function VerseOfTheDay({ language }: Props) {
   if (loading) {
     return (
       <section className="dawuro-card p-5">
-        <div className="flex items-center gap-2 text-sm text-ink-soft">
-          <span className="inline-block h-2 w-2 animate-pulse rounded-full bg-gold" />
-          Finding today&apos;s word…
-        </div>
+        <p className="flex items-center gap-2 text-[13px] text-ink-soft">
+          <IconLoader size={14} className="dawuro-spin" />
+          Loading today&apos;s verse…
+        </p>
       </section>
     );
   }
@@ -69,11 +69,11 @@ export function VerseOfTheDay({ language }: Props) {
   if (error) {
     return (
       <section className="dawuro-card p-5">
-        <p className="text-sm text-ink-soft">{error}</p>
+        <p className="text-[13px] text-ink-soft">{error}</p>
         {(error.toLowerCase().includes("biblica") ||
           error.toLowerCase().includes("license")) && (
-          <p className="mt-2 text-xs text-ink-soft">
-            Open{" "}
+          <p className="mt-2 text-[12px] text-ink-soft">
+            Accept the Biblica license at{" "}
             <a
               href="https://platform.youversion.com/"
               className="font-medium text-brand underline"
@@ -81,8 +81,8 @@ export function VerseOfTheDay({ language }: Props) {
               rel="noreferrer"
             >
               platform.youversion.com
-            </a>{" "}
-            and accept the Biblica Fast-track license, then refresh.
+            </a>
+            , then refresh.
           </p>
         )}
       </section>
@@ -93,16 +93,9 @@ export function VerseOfTheDay({ language }: Props) {
 
   return (
     <section className="dawuro-rise space-y-4">
-      <div className="flex items-center justify-between px-0.5">
-        <p className="text-[11px] font-semibold uppercase tracking-wide text-ink-soft">
-          Day {data.day} of the year
-        </p>
-      </div>
+      <p className="text-[12px] text-ink-faint">Day {data.day}</p>
       <VerseCard verse={data.verse} />
-      <ShareSheet
-        verse={data.verse}
-        buttonLabel="Share as voice note"
-      />
+      <ShareSheet verse={data.verse} buttonLabel="Share as voice note" />
     </section>
   );
 }

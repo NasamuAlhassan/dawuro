@@ -9,48 +9,42 @@ export default function SettingsPage() {
 
   return (
     <div className="flex flex-1 flex-col gap-6">
-      <section className="space-y-1">
-        <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-gold">
-          Settings
-        </p>
-        <h2
-          className="text-[1.75rem] font-semibold leading-tight tracking-tight text-ink"
+      <header className="space-y-2">
+        <h1
+          className="text-[1.65rem] font-semibold leading-[1.2] tracking-[-0.02em] text-ink"
           style={{ fontFamily: "var(--font-display), serif" }}
         >
-          Make it yours
-        </h2>
-        <p className="text-sm leading-relaxed text-ink-soft">
-          Choose the language of Scripture and the tone of reflections.
+          Settings
+        </h1>
+        <p className="max-w-[36ch] text-[14px] leading-relaxed text-ink-soft">
+          Language of Scripture and tone of reflections.
         </p>
-      </section>
+      </header>
 
-      <section className="dawuro-card space-y-5 p-4 sm:p-5">
+      <section className="dawuro-card p-4 sm:p-5">
         <LanguageSetting value={language} onChange={setLanguage} />
       </section>
 
-      <section className="dawuro-card space-y-4 p-4 sm:p-5">
+      <section className="dawuro-card space-y-3 p-4 sm:p-5">
         <TraditionSetting value={tradition} onChange={setTradition} />
-        <p className="text-[11px] leading-relaxed text-ink-soft">
-          Tradition shapes Gloo AI reflections only. Verse text always comes
-          from YouVersion (or is clearly labelled when Khaya renders a language
-          not yet on YouVersion).
+        <p className="text-[12px] leading-relaxed text-ink-soft">
+          Tradition only affects Gloo reflections. Verse text comes from
+          YouVersion when available, or is clearly labelled when Khaya renders
+          a language not yet on YouVersion.
         </p>
       </section>
 
-      <section className="dawuro-card space-y-2 p-4 sm:p-5">
-        <h3
-          className="text-sm font-semibold text-ink"
+      <section className="dawuro-panel space-y-2 p-4 sm:p-5">
+        <h2
+          className="text-[14px] font-semibold text-ink"
           style={{ fontFamily: "var(--font-display), serif" }}
         >
-          About Dawuro
-        </h3>
-        <p className="text-xs leading-relaxed text-ink-soft">
-          <em>Dawuro</em> is the town crier&apos;s announcement — the message
-          meant to be heard. Scripture via YouVersion · Reflection via Gloo AI ·
-          Voice via GhanaNLP Khaya.
-        </p>
-        <p className="text-[11px] text-ink-soft">
-          Publisher copyrights are shown with each verse.
+          About
+        </h2>
+        <p className="text-[12px] leading-relaxed text-ink-soft">
+          Dawuro means the town crier&apos;s call — a message for everyone.
+          Scripture from YouVersion · Reflection from Gloo AI · Voice from
+          GhanaNLP Khaya. Publisher credits appear with each verse.
         </p>
       </section>
     </div>

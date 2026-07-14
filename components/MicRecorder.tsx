@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import type { InputLanguageId } from "@/lib/languages";
 import { getInputLanguage } from "@/lib/languages";
+import { IconMic, IconStop } from "@/components/ui/Icons";
 
 type Props = {
   language: InputLanguageId;
@@ -97,7 +98,7 @@ export function MicRecorder({ language, onTranscript, disabled }: Props) {
 
   const startKhaya = useCallback(async () => {
     if (!input.khayaAsr) {
-      setStatus(`Type in ${input.label} — Khaya will translate.`);
+      setStatus(`Type in ${input.label} — we'll translate it.`);
       return;
     }
     if (!navigator.mediaDevices?.getUserMedia) {
@@ -127,7 +128,7 @@ export function MicRecorder({ language, onTranscript, disabled }: Props) {
           setListening(false);
           return;
         }
-        setStatus("Understanding…");
+        setStatus("Transcribing…");
         try {
           const form = new FormData();
           form.append("audio", blob, "feeling.webm");
@@ -144,7 +145,7 @@ export function MicRecorder({ language, onTranscript, disabled }: Props) {
             const err = (json.error || "").toLowerCase();
             if (err.includes("invalid language") || res.status === 400) {
               setStatus(
-                `ASR for ${input.label} unavailable — type it; Khaya will translate.`,
+                `Voice for ${input.label} unavailable — type it instead.`,
               );
             } else {
               setStatus(json.error || "Couldn't understand — type instead.");
@@ -193,18 +194,18 @@ export function MicRecorder({ language, onTranscript, disabled }: Props) {
         disabled={disabled}
         aria-pressed={listening}
         aria-label={listening ? "Stop listening" : `Speak in ${input.label}`}
-        className={`flex h-12 w-12 shrink-0 items-center justify-center rounded-full text-lg transition disabled:opacity-50 ${
+        className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-full transition disabled:opacity-50 ${
           listening
-            ? "bg-brand text-white shadow-[0_0_0_6px_rgba(178,58,22,0.2)]"
-            : "border border-line bg-surface text-brand shadow-sm hover:border-gold hover:bg-gold-soft/50"
+            ? "bg-brand text-white ring-4 ring-brand/15"
+            : "border border-line bg-surface-2 text-ink hover:border-line-strong"
         }`}
         title={`Speak in ${input.label}`}
       >
-        {listening ? "■" : "🎤"}
+        {listening ? <IconStop size={16} /> : <IconMic size={20} />}
       </button>
       {status && (
         <p
-          className="absolute top-full z-10 mt-1 w-40 text-center text-[10px] leading-snug text-ink-soft"
+          className="absolute top-full z-10 mt-1.5 w-44 text-center text-[11px] leading-snug text-ink-soft"
           aria-live="polite"
         >
           {status}

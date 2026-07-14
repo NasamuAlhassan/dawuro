@@ -23,17 +23,12 @@ type Props = {
   onChange: (t: Tradition) => void;
 };
 
-/**
- * Subtle tradition selector — feeds Gloo's `tradition` parameter.
- */
 export function TraditionSetting({ value, onChange }: Props) {
   return (
-    <div className="flex flex-col gap-1.5">
-      <p className="text-[11px] font-medium uppercase tracking-wide text-ink-soft">
-        Reflection tradition
-      </p>
+    <div className="flex flex-col gap-2">
+      <p className="text-[13px] font-medium text-ink">Reflection tradition</p>
       <div
-        className="inline-flex flex-wrap gap-1 rounded-full border border-line bg-surface p-0.5"
+        className="flex flex-wrap gap-1.5"
         role="radiogroup"
         aria-label="Christian tradition for reflections"
       >
@@ -51,10 +46,10 @@ export function TraditionSetting({ value, onChange }: Props) {
                 /* ignore */
               }
             }}
-            className={`rounded-full px-3 py-1.5 text-xs font-medium transition ${
+            className={`rounded-md px-2.5 py-1.5 text-[12px] font-medium transition ${
               value === opt.id
-                ? "bg-brand text-white"
-                : "text-ink-soft hover:text-ink"
+                ? "bg-ink text-surface-2"
+                : "text-ink-soft ring-1 ring-line hover:text-ink"
             }`}
           >
             {opt.label}
@@ -65,7 +60,6 @@ export function TraditionSetting({ value, onChange }: Props) {
   );
 }
 
-/** Hook for pages that need persisted tradition. */
 export function useTradition(): [Tradition, (t: Tradition) => void] {
   const [tradition, setTradition] = useState<Tradition>("evangelical");
 

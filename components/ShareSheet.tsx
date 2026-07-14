@@ -11,6 +11,7 @@ import {
   slugifyRef,
 } from "@/lib/card";
 import { getLanguage } from "@/lib/languages";
+import { IconLoader, IconShare } from "@/components/ui/Icons";
 
 type Props = {
   verse: VerseResult;
@@ -56,14 +57,14 @@ export function ShareSheet({
     if (!cardRef.current || busy || !local) return;
     setBusy(true);
     setError(null);
-    setStatus("Preparing your card…");
+    setStatus("Preparing card…");
 
     try {
       const dataUrl = await renderCardToPng(cardRef.current);
       const imageBlob = await dataUrlToBlob(dataUrl);
       const slug = slugifyRef(verse.humanReference) || "verse";
 
-      setStatus("Preparing the audio…");
+      setStatus("Preparing audio…");
       const audioBlob = await fetchAudioBlob();
 
       const imageFile = new File([imageBlob], `dawuro-${slug}.png`, {
@@ -77,7 +78,7 @@ export function ShareSheet({
 
       const files = audioFile ? [imageFile, audioFile] : [imageFile];
       const shareTitle = `${verse.humanReference} · Dawuro`;
-      const shareText = `${verse.humanReference}\n\n${local.text}\n\n${verse.english.text}\n\n— shared via Dawuro (${lang.nativeName})`;
+      const shareText = `${verse.humanReference}\n\n${local.text}\n\n${verse.english.text}\n\n— via Dawuro`;
 
       if (canShareFiles() && navigator.canShare?.({ files })) {
         setStatus("Opening share…");
@@ -104,12 +105,12 @@ export function ShareSheet({
       }
       setStatus(
         audioBlob
-          ? "Image + audio saved. Send them on WhatsApp."
-          : "Image saved. Send it on WhatsApp.",
+          ? "Image and audio saved — send them on WhatsApp."
+          : "Image saved — send it on WhatsApp.",
       );
     } catch (e) {
       console.error("[ShareSheet]", e);
-      setError("Could not prepare the share card. Try again.");
+      setError("Could not prepare the share card.");
       setStatus(null);
     } finally {
       setBusy(false);
@@ -122,17 +123,27 @@ export function ShareSheet({
         type="button"
         onClick={() => void handleShare()}
         disabled={busy || !local?.text}
-        className="inline-flex min-h-12 w-full items-center justify-center gap-2 rounded-2xl bg-ink px-5 text-sm font-semibold text-gold-soft shadow-md transition hover:bg-brand-deep disabled:cursor-not-allowed disabled:opacity-50"
+        className="inline-flex min-h-11 w-full items-center justify-center gap-2 rounded-[var(--radius-sm)] bg-ink px-5 text-[14px] font-semibold text-surface-2 transition hover:bg-brand-deep disabled:cursor-not-allowed disabled:opacity-45"
       >
-        {busy ? "Preparing…" : buttonLabel}
+        {busy ? (
+          <>
+            <IconLoader size={16} className="dawuro-spin" />
+            Preparing…
+          </>
+        ) : (
+          <>
+            <IconShare size={16} />
+            {buttonLabel}
+          </>
+        )}
       </button>
       {status && (
-        <p className="text-center text-xs text-ink-soft" aria-live="polite">
+        <p className="text-center text-[12px] text-ink-soft" aria-live="polite">
           {status}
         </p>
       )}
       {error && (
-        <p className="text-center text-xs text-brand" role="alert">
+        <p className="text-center text-[12px] text-brand" role="alert">
           {error}
         </p>
       )}

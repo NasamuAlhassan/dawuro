@@ -1,24 +1,28 @@
 @import "tailwindcss";
 
-/* Dawuro — warm earth, morning light, town-crier gold */
+/*
+  Dawuro visual system
+  Quiet craft: red earth, dry-season sky, paper.
+  Intentionally restrained — not template “AI spiritual app”.
+*/
 :root {
-  --bg: #f7f0e4;
-  --bg-deep: #efe4d0;
-  --surface: #fffcf7;
-  --ink: #2a2118;
-  --ink-soft: #6b5d4f;
-  --brand: #b23a16;
-  --brand-deep: #7a2610;
-  --gold: #d9a441;
-  --gold-soft: #f1e2be;
-  --line: #e4d8c4;
-  --twi: #2a2118;
-  --english: #5c4f42;
-  --success: #3f7a52;
-  --danger: #b23a16;
-  --shadow: 0 8px 28px rgba(42, 33, 24, 0.07);
-  --shadow-soft: 0 2px 10px rgba(42, 33, 24, 0.05);
-  --radius-card: 1.15rem;
+  --bg: #f3ebe0;
+  --surface: #faf6f0;
+  --surface-2: #fffdf9;
+  --ink: #1f1a14;
+  --ink-soft: #6a5e52;
+  --ink-faint: #9a8d7e;
+  --brand: #9e3414;
+  --brand-deep: #6b220c;
+  --accent: #c4922a;
+  --accent-soft: #e8d4a8;
+  --line: #ddd0be;
+  --line-strong: #cbbba3;
+  --success: #2f6b45;
+  --danger: #9e3414;
+  --shadow: 0 1px 0 rgba(31, 26, 20, 0.04), 0 12px 32px rgba(31, 26, 20, 0.06);
+  --radius: 12px;
+  --radius-sm: 8px;
 
   --background: var(--bg);
   --foreground: var(--ink);
@@ -28,15 +32,17 @@
   --color-background: var(--background);
   --color-foreground: var(--foreground);
   --color-surface: var(--surface);
+  --color-surface-2: var(--surface-2);
   --color-ink: var(--ink);
   --color-ink-soft: var(--ink-soft);
+  --color-ink-faint: var(--ink-faint);
   --color-brand: var(--brand);
   --color-brand-deep: var(--brand-deep);
-  --color-gold: var(--gold);
-  --color-gold-soft: var(--gold-soft);
+  --color-gold: var(--accent);
+  --color-gold-soft: var(--accent-soft);
   --color-line: var(--line);
-  --color-twi: var(--twi);
-  --color-english: var(--english);
+  --color-twi: var(--ink);
+  --color-english: var(--ink-soft);
   --color-success: var(--success);
   --color-danger: var(--danger);
   --font-sans: var(--font-ui);
@@ -44,33 +50,24 @@
 }
 
 body {
-  background:
-    radial-gradient(1200px 600px at 10% -10%, rgba(217, 164, 65, 0.14), transparent 55%),
-    radial-gradient(900px 500px at 100% 0%, rgba(178, 58, 22, 0.08), transparent 50%),
-    linear-gradient(180deg, var(--bg) 0%, var(--bg-deep) 100%);
-  background-attachment: fixed;
+  background: var(--bg);
   color: var(--ink);
   font-family: var(--font-ui), system-ui, sans-serif;
   min-height: 100dvh;
+  -webkit-font-smoothing: antialiased;
 }
 
-/* Card utility */
 .dawuro-card {
   border: 1px solid var(--line);
-  border-radius: var(--radius-card);
-  background: var(--surface);
-  box-shadow: var(--shadow-soft);
+  border-radius: var(--radius);
+  background: var(--surface-2);
+  box-shadow: var(--shadow);
 }
 
-.dawuro-card-elevated {
-  border: 1px solid color-mix(in srgb, var(--gold) 35%, var(--line));
-  border-radius: var(--radius-card);
-  background: linear-gradient(
-    165deg,
-    var(--surface) 0%,
-    color-mix(in srgb, var(--gold-soft) 45%, var(--surface)) 100%
-  );
-  box-shadow: var(--shadow);
+.dawuro-panel {
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: var(--surface);
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -88,24 +85,33 @@ body {
   outline-offset: 2px;
 }
 
-/* Soft entrance for result blocks */
-@keyframes dawuro-rise {
+@keyframes dawuro-in {
   from {
     opacity: 0;
-    transform: translateY(8px);
+    transform: translateY(6px);
   }
   to {
     opacity: 1;
-    transform: translateY(0);
+    transform: none;
   }
 }
 
 .dawuro-rise {
-  animation: dawuro-rise 0.45s ease-out both;
+  animation: dawuro-in 0.35s ease-out both;
 }
 
 @media (prefers-reduced-motion: reduce) {
   .dawuro-rise {
     animation: none;
   }
+}
+
+@keyframes dawuro-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.dawuro-spin {
+  animation: dawuro-spin 0.8s linear infinite;
 }

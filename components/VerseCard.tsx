@@ -22,31 +22,29 @@ export function VerseCard({
   const fromKhaya = verse.localFromKhaya || local.source === "khaya";
 
   return (
-    <article className={`dawuro-card overflow-hidden ${className}`}>
-      <div className="border-b border-line bg-gradient-to-r from-gold-soft/60 to-transparent px-5 py-3">
-        <div className="flex items-baseline justify-between gap-2">
-          <p
-            className="text-base font-semibold tracking-tight text-brand"
-            style={{ fontFamily: "var(--font-display), serif" }}
-          >
-            {verse.humanReference}
-          </p>
-          <span className="rounded-full bg-surface px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-ink-soft ring-1 ring-line">
-            {local.label || lang.label}
-          </span>
-        </div>
+    <article className={`dawuro-card ${className}`}>
+      <div className="flex items-start justify-between gap-3 border-b border-line px-4 py-3 sm:px-5">
+        <p
+          className="text-[15px] font-semibold tracking-tight text-ink"
+          style={{ fontFamily: "var(--font-display), serif" }}
+        >
+          {verse.humanReference}
+        </p>
+        <span className="shrink-0 text-[11px] font-medium text-ink-faint">
+          {lang.label}
+        </span>
       </div>
 
-      <div className="space-y-4 px-5 py-5">
+      <div className="space-y-4 px-4 py-4 sm:px-5 sm:py-5">
         {(verse.proxyNote || fromKhaya) && (
-          <p className="rounded-xl bg-gold-soft/50 px-3 py-2 text-[11px] leading-snug text-ink-soft">
+          <p className="text-[11px] leading-snug text-ink-faint">
             {verse.proxyNote ||
-              `${lang.name} via Khaya. English is the published YouVersion Scripture.`}
+              `${lang.name} rendered with Khaya. English is the published YouVersion text.`}
           </p>
         )}
 
         <p
-          className="text-[1.2rem] leading-[1.65] text-twi"
+          className="text-[1.125rem] leading-[1.7] text-ink"
           style={{ fontFamily: "var(--font-verse), serif" }}
           lang={lang.htmlLang}
         >
@@ -54,7 +52,7 @@ export function VerseCard({
         </p>
 
         <p
-          className="border-t border-line/80 pt-4 text-[0.95rem] leading-relaxed text-english"
+          className="border-t border-line pt-4 text-[0.9375rem] leading-[1.65] text-ink-soft"
           style={{ fontFamily: "var(--font-verse), serif" }}
           lang="en"
         >
@@ -69,15 +67,15 @@ export function VerseCard({
           />
         )}
 
-        <footer className="space-y-1 border-t border-line pt-3">
+        <footer className="space-y-0.5 border-t border-line pt-3">
           {local.copyright && (
-            <p className="text-[10px] leading-snug text-ink-soft">
+            <p className="text-[10px] leading-snug text-ink-faint">
               {fromKhaya ? `Local: ${local.copyright}` : local.copyright}
             </p>
           )}
           {verse.english.copyright && (
-            <p className="text-[10px] leading-snug text-ink-soft">
-              Scripture (EN): {verse.english.copyright}
+            <p className="text-[10px] leading-snug text-ink-faint">
+              English: {verse.english.copyright}
             </p>
           )}
         </footer>

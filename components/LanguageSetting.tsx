@@ -13,6 +13,7 @@ import {
   type LanguageRegion,
   type LocalLanguageId,
 } from "@/lib/languages";
+import { IconSpeaker, IconWave } from "@/components/ui/Icons";
 
 export function loadLanguage(): LocalLanguageId {
   if (typeof window === "undefined") return DEFAULT_LOCAL_LANGUAGE;
@@ -48,27 +49,23 @@ function groupByRegion(list: LanguageConfig[]) {
     .map((r) => ({ region: r, languages: map.get(r)! }));
 }
 
-/**
- * Scripture language picker — Ghana first, voice-capable marked ♪
- */
 export function LanguageSetting({ value, onChange }: Props) {
   const groups = useMemo(() => groupByRegion(LANGUAGE_LIST), []);
 
   return (
-    <div className="flex flex-col gap-3">
+    <div className="flex flex-col gap-5">
       <div>
-        <p className="text-[11px] font-medium uppercase tracking-wide text-ink-soft">
-          Scripture language
-        </p>
-        <p className="mt-0.5 text-[11px] text-ink-soft">
-          English always shows alongside. Ghanaian languages listed first.
-          Scripture is never machine-translated.
+        <p className="text-[13px] font-medium text-ink">Scripture language</p>
+        <p className="mt-1 text-[12px] leading-relaxed text-ink-soft">
+          English always shows alongside. Ghanaian languages first. Published
+          Bibles from YouVersion when available; otherwise Khaya for local
+          text.
         </p>
       </div>
 
       {groups.map(({ region, languages }) => (
-        <div key={region} className="space-y-1.5">
-          <p className="text-[10px] font-semibold uppercase tracking-wider text-gold">
+        <div key={region} className="space-y-2">
+          <p className="text-[11px] font-medium tracking-wide text-ink-faint">
             {REGION_LABELS[region]}
           </p>
           <div
@@ -97,15 +94,15 @@ export function LanguageSetting({ value, onChange }: Props) {
                       /* ignore */
                     }
                   }}
-                  className={`rounded-full border px-3 py-1.5 text-xs font-medium transition ${
+                  className={`inline-flex items-center gap-1.5 rounded-md px-2.5 py-1.5 text-[12px] font-medium transition ${
                     selected
-                      ? "border-brand bg-brand text-white"
-                      : "border-line bg-surface text-ink-soft hover:border-gold hover:text-ink"
+                      ? "bg-ink text-surface-2"
+                      : "bg-surface-2 text-ink-soft ring-1 ring-line hover:text-ink"
                   }`}
                   title={[
                     lang.title || lang.name,
-                    voice ? "Hear aloud" : null,
-                    asr ? "Speak input" : null,
+                    voice ? "Audio playback" : null,
+                    asr ? "Voice input" : null,
                     lang.khayaNote || null,
                   ]
                     .filter(Boolean)
@@ -113,14 +110,16 @@ export function LanguageSetting({ value, onChange }: Props) {
                 >
                   {lang.label}
                   {voice && (
-                    <span className="ml-1 opacity-80" aria-label="voice">
-                      ♪
-                    </span>
+                    <IconSpeaker
+                      size={12}
+                      className={selected ? "opacity-80" : "opacity-50"}
+                    />
                   )}
                   {asr && !voice && (
-                    <span className="ml-1 opacity-70" aria-label="mic">
-                      🎤
-                    </span>
+                    <IconWave
+                      size={12}
+                      className={selected ? "opacity-80" : "opacity-50"}
+                    />
                   )}
                 </button>
               );
@@ -129,14 +128,14 @@ export function LanguageSetting({ value, onChange }: Props) {
         </div>
       ))}
 
-      <p className="text-[10px] leading-relaxed text-ink-soft">
-        <span className="font-medium">♪</span> Hear aloud (Khaya TTS) ·{" "}
-        <span className="font-medium">🎤</span> Speak feelings (Khaya ASR).
-        If a language isn’t on YouVersion (e.g. Kusaal, Ga), we use{" "}
-        <span className="font-medium">Khaya</span> to translate the English
-        verse, plus ASR/TTS when available. English is always published
-        Scripture from YouVersion.
-      </p>
+      <div className="flex flex-wrap gap-x-4 gap-y-1 text-[11px] text-ink-faint">
+        <span className="inline-flex items-center gap-1">
+          <IconSpeaker size={12} /> Audio playback
+        </span>
+        <span className="inline-flex items-center gap-1">
+          <IconWave size={12} /> Voice input
+        </span>
+      </div>
     </div>
   );
 }

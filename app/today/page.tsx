@@ -9,22 +9,19 @@ export default function TodayPage() {
   const lang = getLanguage(language);
 
   return (
-    <div className="flex flex-1 flex-col gap-5">
-      <section className="space-y-1">
-        <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-gold">
-          Verse of the Day
-        </p>
-        <h2
-          className="text-[1.75rem] font-semibold leading-tight tracking-tight text-ink"
+    <div className="flex flex-1 flex-col gap-6">
+      <header className="space-y-2">
+        <h1
+          className="text-[1.65rem] font-semibold leading-[1.2] tracking-[-0.02em] text-ink"
           style={{ fontFamily: "var(--font-display), serif" }}
         >
-          Today&apos;s word
-        </h2>
-        <p className="text-sm leading-relaxed text-ink-soft">
-          A daily verse in {lang.nativeName} and English — share it as a voice
-          note with no app needed for the receiver.
+          Today
+        </h1>
+        <p className="max-w-[36ch] text-[14px] leading-relaxed text-ink-soft">
+          The daily verse in {lang.nativeName} and English. Share it as a voice
+          note — no app needed for the receiver.
         </p>
-      </section>
+      </header>
 
       <VerseOfTheDay language={language} />
     </div>
