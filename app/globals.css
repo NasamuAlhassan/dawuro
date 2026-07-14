@@ -44,3 +44,20 @@ body {
   color: var(--ink);
   font-family: var(--font-ui), system-ui, sans-serif;
 }
+
+/* Respect reduced motion */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+/* Comfortable focus rings for keyboard users */
+:focus-visible {
+  outline: 2px solid var(--brand);
+  outline-offset: 2px;
+}

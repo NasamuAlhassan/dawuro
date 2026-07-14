@@ -14,6 +14,7 @@ import {
   useTradition,
 } from "@/components/TraditionSetting";
 import { ShareSheet } from "@/components/ShareSheet";
+import { fetchWithTimeout } from "@/lib/fetch-timeout";
 
 type VerseApiResponse = {
   verse?: VerseResult;
@@ -53,16 +54,20 @@ export function HomeClient() {
     setReflection(null);
     setReflectNote(null);
     try {
-      const res = await fetch("/api/reflect", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          feeling: feel,
-          humanReference: v.humanReference,
-          englishVerseText: v.english.text,
-          tradition: trad,
-        }),
-      });
+      const res = await fetchWithTimeout(
+        "/api/reflect",
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            feeling: feel,
+            humanReference: v.humanReference,
+            englishVerseText: v.english.text,
+            tradition: trad,
+          }),
+        },
+        30_000,
+      );
       const json = (await res.json()) as ReflectApiResponse;
 
       if (res.status === 503 && json.code === "GLOO_NOT_CONFIGURED") {
@@ -101,11 +106,15 @@ export function HomeClient() {
     setStatus("Finding a word for you…");
 
     try {
-      const res = await fetch("/api/verse", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ feeling: text }),
-      });
+      const res = await fetchWithTimeout(
+        "/api/verse",
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ feeling: text }),
+        },
+        25_000,
+      );
       const json = (await res.json()) as VerseApiResponse;
 
       if (!res.ok || !json.verse) {
