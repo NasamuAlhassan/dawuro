@@ -1,14 +1,23 @@
+"use client";
+
 import type { VerseResult } from "@/lib/types";
+import { AudioPlayer } from "@/components/AudioPlayer";
 
 type Props = {
   verse: VerseResult;
   className?: string;
+  /** Show Twi play control (Phase 3). */
+  showAudio?: boolean;
 };
 
 /**
  * On-screen verse: Twi primacy, English support, reference + publisher credit.
  */
-export function VerseCard({ verse, className = "" }: Props) {
+export function VerseCard({
+  verse,
+  className = "",
+  showAudio = true,
+}: Props) {
   return (
     <article
       className={`rounded-2xl border border-line bg-surface p-5 shadow-sm ${className}`}
@@ -35,6 +44,15 @@ export function VerseCard({ verse, className = "" }: Props) {
       >
         {verse.english.text}
       </p>
+
+      {showAudio && verse.twi.text && (
+        <div className="mt-4">
+          <AudioPlayer
+            twiText={verse.twi.text}
+            proAudioUrl={verse.twi.audioUrl}
+          />
+        </div>
+      )}
 
       <footer className="mt-5 space-y-1 border-t border-line pt-3">
         {verse.twi.copyright && (
