@@ -149,7 +149,7 @@ export const LANGUAGES: Record<LocalLanguageId, LanguageConfig> = {
     htmlLang: "gaa",
     khayaAsr: "gaa",
     khayaTranslate: "gaa",
-    // TTS not verified for gaa; leave unset so we don't promise ♪
+    // TTS not verified for gaa on this API key
     feelingPlaceholder: "e.g. mi gbaa mi",
     copyrightFallback: "Khaya AI translation — not a published Bible",
     khayaNote:
