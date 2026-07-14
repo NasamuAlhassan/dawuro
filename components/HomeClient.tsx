@@ -1,10 +1,18 @@
 "use client";
 
 import { useState } from "react";
-import type { VerseResult } from "@/lib/types";
+import type { Reflection, Tradition, VerseResult } from "@/lib/types";
 import { FeelingInput } from "@/components/FeelingInput";
 import { VerseCard } from "@/components/VerseCard";
 import { VerseOfTheDay } from "@/components/VerseOfTheDay";
+import {
+  ReflectionBlock,
+  ReflectionSkipped,
+} from "@/components/ReflectionBlock";
+import {
+  TraditionSetting,
+  useTradition,
+} from "@/components/TraditionSetting";
 
 type VerseApiResponse = {
   verse?: VerseResult;
@@ -14,18 +22,79 @@ type VerseApiResponse = {
   code?: string;
 };
 
+type ReflectApiResponse = {
+  reflection?: Reflection;
+  error?: string;
+  code?: string;
+};
+
 export function HomeClient() {
+  const [tradition, setTradition] = useTradition();
+  const [showSettings, setShowSettings] = useState(false);
+
   const [verse, setVerse] = useState<VerseResult | null>(null);
   const [topicLabel, setTopicLabel] = useState<string | null>(null);
   const [feeling, setFeeling] = useState<string | null>(null);
+  const [reflection, setReflection] = useState<Reflection | null>(null);
+  const [reflectNote, setReflectNote] = useState<string | null>(null);
+  const [reflectLoading, setReflectLoading] = useState(false);
+
   const [status, setStatus] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+
+  async function fetchReflection(
+    v: VerseResult,
+    feel: string,
+    trad: Tradition,
+  ) {
+    setReflectLoading(true);
+    setReflection(null);
+    setReflectNote(null);
+    try {
+      const res = await fetch("/api/reflect", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          feeling: feel,
+          humanReference: v.humanReference,
+          englishVerseText: v.english.text,
+          tradition: trad,
+        }),
+      });
+      const json = (await res.json()) as ReflectApiResponse;
+
+      if (res.status === 503 && json.code === "GLOO_NOT_CONFIGURED") {
+        setReflectNote(
+          "Reflection will appear once Gloo AI credentials are added.",
+        );
+        return;
+      }
+
+      if (!res.ok || !json.reflection) {
+        setReflectNote(
+          json.error ||
+            "Reflection unavailable right now — the verse is still for you.",
+        );
+        return;
+      }
+
+      setReflection(json.reflection);
+    } catch {
+      setReflectNote(
+        "Could not load reflection — the verse is still for you.",
+      );
+    } finally {
+      setReflectLoading(false);
+    }
+  }
 
   async function handleFeeling(text: string) {
     setLoading(true);
     setError(null);
     setVerse(null);
+    setReflection(null);
+    setReflectNote(null);
     setTopicLabel(null);
     setFeeling(text);
     setStatus("Finding a word for you…");
@@ -47,6 +116,10 @@ export function HomeClient() {
       setVerse(json.verse);
       setTopicLabel(json.topic?.label ?? null);
       setStatus(null);
+      setLoading(false);
+
+      // Progressive: reflection loads after verse is on screen
+      void fetchReflection(json.verse, text, tradition);
     } catch {
       setError("Network error. Check your connection and try again.");
       setStatus(null);
@@ -57,6 +130,27 @@ export function HomeClient() {
 
   return (
     <div className="mx-auto flex w-full max-w-md flex-1 flex-col gap-8 px-5 py-6">
+      <div className="flex justify-end">
+        <button
+          type="button"
+          onClick={() => setShowSettings((s) => !s)}
+          className="text-xs font-medium text-ink-soft underline-offset-2 hover:text-ink hover:underline"
+          aria-expanded={showSettings}
+        >
+          {showSettings ? "Close settings" : "Settings"}
+        </button>
+      </div>
+
+      {showSettings && (
+        <section className="rounded-2xl border border-line bg-surface p-4">
+          <TraditionSetting value={tradition} onChange={setTradition} />
+          <p className="mt-2 text-[11px] text-ink-soft">
+            Shapes the tone of AI reflections (Gloo). Default suits a Ghanaian
+            evangelical context.
+          </p>
+        </section>
+      )}
+
       <VerseOfTheDay />
 
       <section className="space-y-4">
@@ -92,7 +186,7 @@ export function HomeClient() {
         )}
 
         {verse && (
-          <div className="space-y-2">
+          <div className="space-y-3">
             {(topicLabel || feeling) && (
               <p className="text-xs text-ink-soft">
                 {topicLabel && (
@@ -107,6 +201,14 @@ export function HomeClient() {
               </p>
             )}
             <VerseCard verse={verse} />
+
+            {reflectLoading && <ReflectionBlock reflection={{ english: "" }} loading />}
+            {!reflectLoading && reflection && (
+              <ReflectionBlock reflection={reflection} />
+            )}
+            {!reflectLoading && !reflection && reflectNote && (
+              <ReflectionSkipped reason={reflectNote} />
+            )}
           </div>
         )}
       </section>
