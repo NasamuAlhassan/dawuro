@@ -65,7 +65,10 @@ export type LanguageConfig = {
    * Verified working: tw, ee, ki. Others may be attempted and degrade gracefully.
    */
   khayaTts?: string;
-  /** Khaya ASR language code (verified: tw, ee, gaa, dag) */
+  /**
+   * Khaya ASR language code.
+   * Verified on API: tw, ee, gaa, dag. Also wire kus (and others) when product supports them.
+   */
   khayaAsr?: string;
   /**
    * Khaya translate code for en-{code} / {code}-en pairs.
@@ -188,11 +191,12 @@ export const LANGUAGES: Record<LocalLanguageId, LanguageConfig> = {
     nativeName: "Kʋsaal",
     region: "ghana",
     htmlLang: "kus",
+    khayaAsr: "kus",
     khayaTranslate: "kus",
     feelingPlaceholder: "e.g. m zu'oe dabiem",
     copyrightFallback: "Khaya AI translation — not a published Bible",
     khayaNote:
-      "Kusaal is not on YouVersion. We fetch English from YouVersion, then use Khaya to translate into Kusaal for reading. English remains the published Scripture.",
+      "Kusaal is not on YouVersion. We fetch English from YouVersion, then use Khaya to translate into Kusaal for reading. Speak or type feelings in Kusaal (Khaya ASR + translate). English remains the published Scripture.",
   },
   gur: {
     id: "gur",
@@ -457,6 +461,7 @@ export const INPUT_LANGUAGES: InputLangOption[] = [
   {
     id: "kus",
     label: "Kusaal",
+    khayaAsr: "kus",
     khayaTranslate: "kus",
     placeholder: "e.g. m zu'oe dabiem",
   },

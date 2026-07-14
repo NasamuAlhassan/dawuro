@@ -21,7 +21,7 @@ English (BSB) always appears as the companion side. **Scripture is never machine
 | `gaa` | Ga | proxy → Asante Twi* | — | Yes |
 | `fat` | Fante | Asante Twi (Akan)* | Yes (Twi TTS) | — |
 | `dag` | Dagbani | proxy → Asante Twi* | — | Yes |
-| `kus` | Kusaal | proxy → Asante Twi* | — | type |
+| `kus` | Kusaal | Khaya from EN* | — | Yes (Khaya ASR) |
 | `gur` | Gurene (Ninkare) | NT #1323 | — | type |
 | `gjn` | Gonja | #1729 | — | type |
 | `xsm` | Kasem | NT #1303 | — | type |
@@ -42,7 +42,7 @@ English (BSB) always appears as the companion side. **Scripture is never machine
 | `mer` | Kimeru | proxy → Gĩkũyũ* | — |
 | `fr` | Français | Segond #93 | — |
 
-**Khaya voice (verified on API):** TTS = Twi, Ewe, Gĩkũyũ · ASR = Twi, Ewe, Ga, Dagbani · Translate includes Kusaal, Fante, Gurene, and more.
+**Khaya voice:** TTS = Twi, Ewe, Gĩkũyũ · ASR wired for Twi, Ewe, Ga, Dagbani, **Kusaal** · Translate includes Kusaal, Fante, Gurene, and more.
 
 ---
 

@@ -61,7 +61,7 @@ export async function GET() {
     kusaalPath: khayaLocal,
     notes: [
       "YouVersion Bible when available; else EN from YouVersion + Khaya local text (Kusaal, Ga, Dagbani, Fante, Luo, Kimeru).",
-      "Khaya ASR (verified): Twi, Ewe, Ga, Dagbani. TTS (verified): Twi, Ewe, Gĩkũyũ; Fante uses Twi voice model.",
+      "Khaya ASR: Twi, Ewe, Ga, Dagbani, Kusaal (and more as product supports). TTS: Twi, Ewe, Gĩkũyũ; Fante uses Twi voice model.",
       !hasGlooKeys()
         ? "Gloo keys optional — reflection deferred until credentials are added."
         : null,

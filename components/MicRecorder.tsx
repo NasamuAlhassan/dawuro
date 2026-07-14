@@ -103,7 +103,7 @@ export function MicRecorder({ language, onTranscript, disabled }: Props) {
   const startKhaya = useCallback(async () => {
     if (!input.khayaAsr) {
       setStatus(
-        `Voice input for ${input.label} isn’t available yet — type in ${input.label}; Khaya will translate.`,
+        `Voice input for ${input.label} isn’t set up — type in ${input.label}; Khaya will still translate.`,
       );
       return;
     }
@@ -148,7 +148,14 @@ export function MicRecorder({ language, onTranscript, disabled }: Props) {
             error?: string;
           };
           if (!res.ok || !json.text) {
-            setStatus(json.error || "Couldn't understand — type instead.");
+            const err = (json.error || "").toLowerCase();
+            if (err.includes("invalid language") || res.status === 400) {
+              setStatus(
+                `Khaya ASR didn’t accept ${input.label} on this key — type in ${input.label} and we’ll translate.`,
+              );
+            } else {
+              setStatus(json.error || "Couldn't understand — type instead.");
+            }
           } else {
             onTranscript(json.text);
             setStatus(null);
