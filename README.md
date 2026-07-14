@@ -56,8 +56,8 @@ English (BSB) always appears as the companion side. **Scripture is never machine
 
 | Rule | How we uphold it |
 |------|------------------|
-| **Never machine-translate Scripture** | Twi text comes only from YouVersion (ASNA). Khaya is for voice + optional reflection translation only. |
-| **Both required APIs do real work** | YouVersion = Scripture; Gloo = contextual reflection + `tradition`. |
+| **Never machine-translate Scripture** | When YouVersion has a published Bible, that text is used. Khaya local text is only for languages without a YouVersion Bible, and is clearly labelled. |
+| **Both required APIs do real work** | YouVersion = Scripture; Gloo = reflection + optional free-text→curated-verse mapping + `tradition`. |
 | **Receiver needs nothing** | Share PNG + audio; open/play without login or app install. |
 | **Secrets stay server-side** | All keys in Route Handlers / `.env.local` only. Never `NEXT_PUBLIC_*` for secrets. |
 
@@ -67,8 +67,8 @@ English (BSB) always appears as the companion side. **Scripture is never machine
 
 - **Next.js** (App Router) + TypeScript + Tailwind CSS  
 - **YouVersion Platform API** — passages, Verse of the Day (EN BSB + Twi ASNA)  
-- **Gloo AI Studio** — Completions v2 reflections, `tradition` parameter  
-- **GhanaNLP Khaya** — Twi ASR (voice in) + TTS (voice out)  
+- **Gloo AI Studio** — Completions v2 reflections, `tradition`, feeling→curated reference mapping  
+- **GhanaNLP Khaya** — ASR / TTS / translate for Ghanaian & African languages  
 - **html-to-image** — shareable PNG cards  
 - **Deploy target:** Vercel  
 
@@ -98,10 +98,26 @@ npm run dev          # http://localhost:3000
 ### Health check
 
 ```bash
-curl http://localhost:3000/api/health
+curl -s http://localhost:3000/api/health | jq .
 ```
 
-Returns which keys are present and whether Twi passage access works (never returns secret values).
+Returns which keys are present and whether Twi / Khaya paths work (never returns secret values).  
+Want: `keys.glooPresent: true`, `twiAccess.ok: true` after Biblica license.
+
+### Demo path
+
+See [docs/DEMO.md](docs/DEMO.md) — fixed flow for video (anxious → Philippians 4:6–7 → share).
+
+### Deploy (Vercel)
+
+1. Push repo to public GitHub  
+2. Import in Vercel; set env vars in the dashboard (Production + Preview):  
+   `YVP_APP_KEY`, `GLOO_CLIENT_ID`, `GLOO_CLIENT_SECRET`, `KHAYA_API_KEY`,  
+   optional `NEXT_PUBLIC_APP_URL`  
+3. Deploy → smoke-test on a phone: type → verse EN+Twi → play → reflect → share  
+4. Use that URL for the Kaggle “public project link”  
+
+**Human steps you still own:** Biblica license, Gloo billing/keys, YouTube video, Kaggle submit.
 
 ---
 

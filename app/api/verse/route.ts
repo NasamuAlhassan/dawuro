@@ -1,27 +1,31 @@
 import { NextResponse } from "next/server";
 import { getBilingualPassage, YouVersionError } from "@/lib/youversion";
-import { mapFeelingToReference } from "@/lib/verses";
+import {
+  allCuratedReferences,
+  mapFeelingToReference,
+  topicForReference,
+} from "@/lib/verses";
 import {
   getInputLanguage,
   getLanguage,
   isLocalLanguageId,
 } from "@/lib/languages";
 import { translateToEnglish } from "@/lib/khaya";
+import { isGlooConfigured, mapFeelingWithGloo } from "@/lib/gloo";
 
 export const runtime = "nodejs";
 
 type Body = {
   feeling?: string;
   reference?: string;
-  /** Scripture / local card language */
   language?: string;
-  /** Feeling language: en | tw | ee | gaa | kus | … */
   inputLanguage?: string;
 };
 
 /**
  * POST { feeling, language?, inputLanguage? }
- * → YouVersion EN + (YouVersion local Bible OR Khaya local render)
+ * Curated map first; if weak match and Gloo is configured, Gloo picks a curated USFM.
+ * Scripture text always from YouVersion (+ Khaya local only when no published Bible).
  */
 export async function POST(req: Request) {
   let body: Body;
@@ -55,8 +59,7 @@ export async function POST(req: Request) {
     if (inputId !== "en") {
       const inputOpt = getInputLanguage(inputId);
       const translateCode =
-        inputOpt.khayaTranslate ||
-        getLanguage(inputId).khayaTranslate;
+        inputOpt.khayaTranslate || getLanguage(inputId).khayaTranslate;
       if (translateCode) {
         try {
           const en = await translateToEnglish(feelingRaw, translateCode);
@@ -71,22 +74,49 @@ export async function POST(req: Request) {
     }
   }
 
-  const mapped = explicit
-    ? {
-        topic: { id: "explicit", label: "Requested" },
-        reference: explicit,
-        score: 1,
+  let reference: string;
+  let topicId: string;
+  let topicLabel: string;
+  let mappingSource: "explicit" | "curated" | "gloo" = "curated";
+
+  if (explicit) {
+    reference = explicit;
+    const t = topicForReference(explicit);
+    topicId = t.id;
+    topicLabel = "Requested";
+    mappingSource = "explicit";
+  } else {
+    const curated = mapFeelingToReference(feelingForMap);
+    reference = curated.reference;
+    topicId = curated.topic.id;
+    topicLabel = curated.topic.label;
+    mappingSource = "curated";
+
+    // Weak/no keyword hit → ask Gloo to pick from the curated allow-list
+    if (curated.score === 0 && isGlooConfigured()) {
+      const glooPick = await mapFeelingWithGloo(
+        feelingForMap,
+        allCuratedReferences(),
+      );
+      if (glooPick) {
+        reference = glooPick.reference;
+        const t = topicForReference(reference);
+        topicId = t.id;
+        topicLabel = glooPick.topicLabel || t.label;
+        mappingSource = "gloo";
       }
-    : mapFeelingToReference(feelingForMap);
+    }
+  }
 
   try {
-    const verse = await getBilingualPassage(mapped.reference, language);
+    const verse = await getBilingualPassage(reference, language);
     return NextResponse.json({
       verse,
       topic: {
-        id: mapped.topic.id,
-        label: mapped.topic.label,
+        id: topicId,
+        label: topicLabel,
       },
+      mappingSource,
       feeling: feelingRaw || null,
       feelingEnglish,
       language,

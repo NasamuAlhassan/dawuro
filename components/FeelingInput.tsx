@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import type { InputLanguageId } from "@/lib/languages";
 import { INPUT_LANGUAGES, getInputLanguage } from "@/lib/languages";
 import { SUGGESTED_FEELINGS } from "@/lib/verses";
@@ -12,10 +12,38 @@ type Props = {
   disabled?: boolean;
 };
 
+const INPUT_LANG_KEY = "dawuro_input_lang";
+
+function loadInputLang(): InputLanguageId {
+  if (typeof window === "undefined") return "en";
+  try {
+    const v = window.localStorage.getItem(INPUT_LANG_KEY);
+    if (v && INPUT_LANGUAGES.some((l) => l.id === v)) {
+      return v as InputLanguageId;
+    }
+  } catch {
+    /* ignore */
+  }
+  return "en";
+}
+
 export function FeelingInput({ onSubmit, loading, disabled }: Props) {
   const [value, setValue] = useState("");
   const [language, setLanguage] = useState<InputLanguageId>("en");
   const input = getInputLanguage(language);
+
+  useEffect(() => {
+    setLanguage(loadInputLang());
+  }, []);
+
+  function setLang(id: InputLanguageId) {
+    setLanguage(id);
+    try {
+      window.localStorage.setItem(INPUT_LANG_KEY, id);
+    } catch {
+      /* ignore */
+    }
+  }
 
   function submit(feeling: string) {
     const t = feeling.trim();
@@ -26,10 +54,7 @@ export function FeelingInput({ onSubmit, loading, disabled }: Props) {
   return (
     <div className="space-y-4">
       <div>
-        <label
-          htmlFor="feeling"
-          className="text-[13px] font-medium text-ink"
-        >
+        <label htmlFor="feeling" className="text-[13px] font-medium text-ink">
           How are you feeling?
         </label>
         <div
@@ -41,7 +66,7 @@ export function FeelingInput({ onSubmit, loading, disabled }: Props) {
             <button
               key={opt.id}
               type="button"
-              onClick={() => setLanguage(opt.id)}
+              onClick={() => setLang(opt.id)}
               className={`rounded-md px-2.5 py-1 text-[12px] font-medium transition ${
                 language === opt.id
                   ? "bg-ink text-surface-2"
@@ -90,7 +115,7 @@ export function FeelingInput({ onSubmit, loading, disabled }: Props) {
             key={s.feeling}
             type="button"
             onClick={() => {
-              setLanguage("en");
+              setLang("en");
               setValue(s.feeling);
               onSubmit(s.feeling, "en");
             }}

@@ -140,6 +140,13 @@ async function resolveCopyright(
   }
 }
 
+/** In-memory passage cache (warm instances / dev). Key: lang + usfm */
+const passageCache = new Map<
+  string,
+  { at: number; value: VerseResult }
+>();
+const PASSAGE_TTL_MS = 1000 * 60 * 30; // 30 min
+
 /**
  * English from YouVersion + local side:
  * - published YouVersion Bible when bibleId is set
@@ -150,6 +157,11 @@ export async function getBilingualPassage(
   localLanguageId: LocalLanguageId | string = "tw",
 ): Promise<VerseResult> {
   const display = getLanguage(localLanguageId);
+  const cacheKey = `${display.id}:${usfm}`;
+  const hit = passageCache.get(cacheKey);
+  if (hit && Date.now() - hit.at < PASSAGE_TTL_MS) {
+    return hit.value;
+  }
 
   const enPassage = await getPassage(
     ENGLISH_BIBLE.id,
@@ -191,7 +203,7 @@ export async function getBilingualPassage(
       copyright: localCopyright,
       source: "youversion" as const,
     };
-    return {
+    const result: VerseResult = {
       reference: usfm,
       humanReference: human || localPassage.reference || usfmToHuman(usfm),
       english: englishSide,
@@ -200,6 +212,8 @@ export async function getBilingualPassage(
       localFromKhaya: false,
       twi: localSide,
     };
+    passageCache.set(cacheKey, { at: Date.now(), value: result });
+    return result;
   }
 
   // Path B: no YouVersion Bible → Khaya translates English verse into local language
@@ -242,7 +256,7 @@ export async function getBilingualPassage(
     source: "khaya" as const,
   };
 
-  return {
+  const result: VerseResult = {
     reference: usfm,
     humanReference: human,
     english: englishSide,
@@ -254,6 +268,8 @@ export async function getBilingualPassage(
       `${display.name} is not on YouVersion. Local text is Khaya translation of the English verse. English (BSB) is the published Scripture.`,
     twi: localSide,
   };
+  passageCache.set(cacheKey, { at: Date.now(), value: result });
+  return result;
 }
 
 function cleanPassageText(raw: string): string {

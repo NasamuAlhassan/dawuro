@@ -211,6 +211,30 @@ export const SUGGESTED_FEELINGS = [
   { label: "Tired", feeling: "tired" },
 ] as const;
 
+/** Fixed demo path for video / judges (reliable curated hit). */
+export const DEMO_PATH = {
+  feeling: "I'm anxious about my exams",
+  topicId: "anxiety" as TopicId,
+  reference: "PHP.4.6-7",
+  humanReference: "Philippians 4:6-7",
+} as const;
+
+/** All curated USFM refs — used to validate Gloo mapping output. */
+export function allCuratedReferences(): string[] {
+  const set = new Set<string>();
+  for (const t of TOPIC_MAP) {
+    for (const r of t.references) set.add(r);
+  }
+  return [...set];
+}
+
+export function topicForReference(usfm: string): TopicEntry {
+  for (const t of TOPIC_MAP) {
+    if (t.references.includes(usfm)) return t;
+  }
+  return TOPIC_MAP.find((t) => t.id === "default")!;
+}
+
 /**
  * Map free-text feeling to a topic and primary USFM reference.
  * Simple keyword scoring — reliable and theologically sound.

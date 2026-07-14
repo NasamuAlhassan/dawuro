@@ -9,13 +9,14 @@ type Props = {
 };
 
 /**
- * Fixed-size visual card for PNG export.
- * Local language is the hero; English support; attribution + Dawuro mark.
+ * WhatsApp-ready PNG target (1080×1350).
+ * High contrast, diacritic-safe fonts, local text as hero.
  */
 export const ShareableCard = forwardRef<HTMLDivElement, Props>(
   function ShareableCard({ verse }, ref) {
     const local = verse.local || verse.twi;
     const lang = getLanguage(verse.localLanguageId || local?.languageId);
+    const fromKhaya = verse.localFromKhaya || local?.source === "khaya";
 
     return (
       <div
@@ -24,35 +25,44 @@ export const ShareableCard = forwardRef<HTMLDivElement, Props>(
           width: 1080,
           height: 1350,
           boxSizing: "border-box",
-          padding: "72px 64px",
-          background:
-            "linear-gradient(165deg, #FBF7F0 0%, #F1E2BE 55%, #FBF7F0 100%)",
-          color: "#2A2118",
+          padding: "64px 56px",
+          background: "#FAF6F0",
+          color: "#1F1A14",
           fontFamily:
-            'var(--font-verse), "Noto Serif", "Noto Sans", Georgia, serif',
+            '"Noto Serif", "Noto Sans", Georgia, "Times New Roman", serif',
           display: "flex",
           flexDirection: "column",
           justifyContent: "space-between",
-          border: "1px solid #E7DECE",
+          border: "2px solid #DDD0BE",
         }}
       >
         <div>
           <div
             style={{
-              fontFamily:
-                'var(--font-display), "Source Serif 4", Georgia, serif',
-              fontSize: 28,
-              fontWeight: 600,
-              letterSpacing: "0.04em",
-              color: "#B23A16",
+              fontSize: 26,
+              fontWeight: 700,
+              letterSpacing: "0.06em",
+              color: "#9E3414",
               textTransform: "uppercase",
             }}
           >
             Dawuro
           </div>
-          <div style={{ marginTop: 8, fontSize: 22, color: "#6B5D4F" }}>
-            Scripture in the voice of your people · {lang.nativeName}
+          <div style={{ marginTop: 10, fontSize: 22, color: "#6A5E52" }}>
+            {lang.nativeName} · English
           </div>
+          {fromKhaya && (
+            <div
+              style={{
+                marginTop: 16,
+                fontSize: 18,
+                color: "#6A5E52",
+                lineHeight: 1.4,
+              }}
+            >
+              Local text via Khaya · English is published Scripture
+            </div>
+          )}
         </div>
 
         <div
@@ -61,16 +71,15 @@ export const ShareableCard = forwardRef<HTMLDivElement, Props>(
             display: "flex",
             flexDirection: "column",
             justifyContent: "center",
-            gap: 28,
+            gap: 32,
+            padding: "24px 0",
           }}
         >
           <div
             style={{
-              fontFamily:
-                'var(--font-display), "Source Serif 4", Georgia, serif',
-              fontSize: 32,
-              fontWeight: 600,
-              color: "#B23A16",
+              fontSize: 30,
+              fontWeight: 700,
+              color: "#9E3414",
             }}
           >
             {verse.humanReference}
@@ -79,10 +88,11 @@ export const ShareableCard = forwardRef<HTMLDivElement, Props>(
           <div
             lang={lang.htmlLang}
             style={{
-              fontSize: 44,
-              lineHeight: 1.45,
+              fontSize: 42,
+              lineHeight: 1.5,
               fontWeight: 600,
-              color: "#2A2118",
+              color: "#1F1A14",
+              // Ensure ɛ ɔ render with Noto
             }}
           >
             {local?.text}
@@ -92,8 +102,10 @@ export const ShareableCard = forwardRef<HTMLDivElement, Props>(
             lang="en"
             style={{
               fontSize: 28,
-              lineHeight: 1.5,
-              color: "#6B5D4F",
+              lineHeight: 1.55,
+              color: "#4A4036",
+              borderTop: "1px solid #DDD0BE",
+              paddingTop: 28,
             }}
           >
             {verse.english.text}
@@ -102,18 +114,25 @@ export const ShareableCard = forwardRef<HTMLDivElement, Props>(
 
         <div
           style={{
-            borderTop: "1px solid #E7DECE",
-            paddingTop: 24,
-            fontSize: 18,
-            lineHeight: 1.4,
-            color: "#6B5D4F",
+            borderTop: "1px solid #DDD0BE",
+            paddingTop: 22,
+            fontSize: 16,
+            lineHeight: 1.45,
+            color: "#6A5E52",
           }}
         >
           {local?.copyright && (
             <div style={{ marginBottom: 6 }}>{local.copyright}</div>
           )}
           {verse.english.copyright && <div>{verse.english.copyright}</div>}
-          <div style={{ marginTop: 16, color: "#D9A441", fontWeight: 600 }}>
+          <div
+            style={{
+              marginTop: 18,
+              fontSize: 18,
+              fontWeight: 600,
+              color: "#9E3414",
+            }}
+          >
             dawuro · share the Word
           </div>
         </div>

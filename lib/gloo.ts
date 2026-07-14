@@ -161,3 +161,64 @@ export async function generateReflection(params: {
     model: data.model,
   };
 }
+
+/**
+ * Map free-text feeling → a curated USFM reference.
+ * Gloo only chooses *which* verse; YouVersion always supplies the text.
+ * Returns null if Gloo is offline or output is not in the allow-list.
+ */
+export async function mapFeelingWithGloo(
+  feeling: string,
+  allowedReferences: string[],
+): Promise<{ reference: string; topicLabel: string } | null> {
+  if (!isGlooConfigured() || !feeling.trim()) return null;
+
+  try {
+    const token = await getGlooToken();
+    const list = allowedReferences.join(", ");
+    const res = await fetch(COMPLETIONS_URL, {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${token}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        messages: [
+          {
+            role: "system",
+            content:
+              "You map a person's feeling to ONE Bible verse reference from an allow-list. " +
+              "Reply with ONLY compact JSON: {\"usfm\":\"PHP.4.6-7\",\"topic\":\"Anxiety\"}. " +
+              "usfm MUST be exactly one of the allowed values. Do not invent verses or write Scripture text.",
+          },
+          {
+            role: "user",
+            content: `Feeling: "${feeling.slice(0, 400)}"\nAllowed usfm: ${list}\nPick the best match.`,
+          },
+        ],
+        auto_routing: true,
+        temperature: 0.2,
+        max_tokens: 80,
+      }),
+    });
+
+    if (!res.ok) return null;
+    const data = (await res.json()) as CompletionsResponse;
+    const raw = data.choices?.[0]?.message?.content?.trim() || "";
+    const jsonMatch = raw.match(/\{[\s\S]*\}/);
+    if (!jsonMatch) return null;
+    const parsed = JSON.parse(jsonMatch[0]) as {
+      usfm?: string;
+      topic?: string;
+    };
+    const usfm = parsed.usfm?.trim();
+    if (!usfm || !allowedReferences.includes(usfm)) return null;
+    return {
+      reference: usfm,
+      topicLabel: parsed.topic?.trim() || "Encouragement",
+    };
+  } catch (e) {
+    console.warn("[gloo] mapFeelingWithGloo failed", e);
+    return null;
+  }
+}
