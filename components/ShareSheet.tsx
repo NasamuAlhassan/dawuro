@@ -17,9 +17,6 @@ type Props = {
   buttonLabel?: string;
 };
 
-/**
- * Builds PNG image card + local-language audio, then Web Share or download.
- */
 export function ShareSheet({
   verse,
   buttonLabel = "Share",
@@ -42,7 +39,6 @@ export function ShareSheet({
         /* fall through */
       }
     }
-
     if (!local.text?.trim() || !lang.khayaTts) return null;
 
     const res = await fetch("/api/speak", {
@@ -126,17 +122,17 @@ export function ShareSheet({
         type="button"
         onClick={() => void handleShare()}
         disabled={busy || !local?.text}
-        className="inline-flex min-h-12 w-full items-center justify-center rounded-xl bg-brand px-5 text-sm font-semibold text-white transition hover:bg-brand-deep disabled:cursor-not-allowed disabled:opacity-50"
+        className="inline-flex min-h-12 w-full items-center justify-center gap-2 rounded-2xl bg-ink px-5 text-sm font-semibold text-gold-soft shadow-md transition hover:bg-brand-deep disabled:cursor-not-allowed disabled:opacity-50"
       >
         {busy ? "Preparing…" : buttonLabel}
       </button>
       {status && (
-        <p className="text-xs text-ink-soft" aria-live="polite">
+        <p className="text-center text-xs text-ink-soft" aria-live="polite">
           {status}
         </p>
       )}
       {error && (
-        <p className="text-xs text-brand" role="alert">
+        <p className="text-center text-xs text-brand" role="alert">
           {error}
         </p>
       )}

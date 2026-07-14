@@ -17,9 +17,6 @@ type Props = {
   language: LocalLanguageId;
 };
 
-/**
- * Home VOTD widget — reloads when Scripture language changes.
- */
 export function VerseOfTheDay({ language }: Props) {
   const [data, setData] = useState<VotdResponse | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -60,24 +57,19 @@ export function VerseOfTheDay({ language }: Props) {
 
   if (loading) {
     return (
-      <section className="rounded-2xl border border-line bg-surface p-5 shadow-sm">
-        <p className="text-xs font-medium uppercase tracking-wide text-gold">
-          Verse of the Day
-        </p>
-        <p className="mt-3 text-sm text-ink-soft">
+      <section className="dawuro-card p-5">
+        <div className="flex items-center gap-2 text-sm text-ink-soft">
+          <span className="inline-block h-2 w-2 animate-pulse rounded-full bg-gold" />
           Finding today&apos;s word…
-        </p>
+        </div>
       </section>
     );
   }
 
   if (error) {
     return (
-      <section className="rounded-2xl border border-line bg-surface p-5 shadow-sm">
-        <p className="text-xs font-medium uppercase tracking-wide text-gold">
-          Verse of the Day
-        </p>
-        <p className="mt-3 text-sm text-ink-soft">{error}</p>
+      <section className="dawuro-card p-5">
+        <p className="text-sm text-ink-soft">{error}</p>
         {(error.toLowerCase().includes("biblica") ||
           error.toLowerCase().includes("license")) && (
           <p className="mt-2 text-xs text-ink-soft">
@@ -90,7 +82,7 @@ export function VerseOfTheDay({ language }: Props) {
             >
               platform.youversion.com
             </a>{" "}
-            and accept the Biblica Fast-track Bible License, then refresh.
+            and accept the Biblica Fast-track license, then refresh.
           </p>
         )}
       </section>
@@ -100,12 +92,11 @@ export function VerseOfTheDay({ language }: Props) {
   if (!data?.verse) return null;
 
   return (
-    <section className="space-y-3">
-      <div className="flex items-baseline justify-between px-0.5">
-        <p className="text-xs font-medium uppercase tracking-wide text-gold">
-          Verse of the Day
+    <section className="dawuro-rise space-y-4">
+      <div className="flex items-center justify-between px-0.5">
+        <p className="text-[11px] font-semibold uppercase tracking-wide text-ink-soft">
+          Day {data.day} of the year
         </p>
-        <p className="text-[11px] text-ink-soft">Day {data.day}</p>
       </div>
       <VerseCard verse={data.verse} />
       <ShareSheet

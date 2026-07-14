@@ -1,20 +1,24 @@
 @import "tailwindcss";
 
-/* Dawuro design tokens — warm, rooted, contemporary Ghanaian (see 08_DESIGN_SYSTEM.md) */
+/* Dawuro — warm earth, morning light, town-crier gold */
 :root {
-  --bg: #fbf7f0;
-  --surface: #ffffff;
+  --bg: #f7f0e4;
+  --bg-deep: #efe4d0;
+  --surface: #fffcf7;
   --ink: #2a2118;
   --ink-soft: #6b5d4f;
   --brand: #b23a16;
   --brand-deep: #7a2610;
   --gold: #d9a441;
   --gold-soft: #f1e2be;
-  --line: #e7dece;
+  --line: #e4d8c4;
   --twi: #2a2118;
-  --english: #6b5d4f;
+  --english: #5c4f42;
   --success: #3f7a52;
   --danger: #b23a16;
+  --shadow: 0 8px 28px rgba(42, 33, 24, 0.07);
+  --shadow-soft: 0 2px 10px rgba(42, 33, 24, 0.05);
+  --radius-card: 1.15rem;
 
   --background: var(--bg);
   --foreground: var(--ink);
@@ -40,12 +44,35 @@
 }
 
 body {
-  background: var(--bg);
+  background:
+    radial-gradient(1200px 600px at 10% -10%, rgba(217, 164, 65, 0.14), transparent 55%),
+    radial-gradient(900px 500px at 100% 0%, rgba(178, 58, 22, 0.08), transparent 50%),
+    linear-gradient(180deg, var(--bg) 0%, var(--bg-deep) 100%);
+  background-attachment: fixed;
   color: var(--ink);
   font-family: var(--font-ui), system-ui, sans-serif;
+  min-height: 100dvh;
 }
 
-/* Respect reduced motion */
+/* Card utility */
+.dawuro-card {
+  border: 1px solid var(--line);
+  border-radius: var(--radius-card);
+  background: var(--surface);
+  box-shadow: var(--shadow-soft);
+}
+
+.dawuro-card-elevated {
+  border: 1px solid color-mix(in srgb, var(--gold) 35%, var(--line));
+  border-radius: var(--radius-card);
+  background: linear-gradient(
+    165deg,
+    var(--surface) 0%,
+    color-mix(in srgb, var(--gold-soft) 45%, var(--surface)) 100%
+  );
+  box-shadow: var(--shadow);
+}
+
 @media (prefers-reduced-motion: reduce) {
   *,
   *::before,
@@ -56,8 +83,29 @@ body {
   }
 }
 
-/* Comfortable focus rings for keyboard users */
 :focus-visible {
   outline: 2px solid var(--brand);
   outline-offset: 2px;
+}
+
+/* Soft entrance for result blocks */
+@keyframes dawuro-rise {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.dawuro-rise {
+  animation: dawuro-rise 0.45s ease-out both;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .dawuro-rise {
+    animation: none;
+  }
 }

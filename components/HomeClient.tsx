@@ -4,18 +4,13 @@ import { useState } from "react";
 import type { Reflection, Tradition, VerseResult } from "@/lib/types";
 import type { InputLanguageId, LocalLanguageId } from "@/lib/languages";
 import { getLanguage } from "@/lib/languages";
+import { useApp } from "@/lib/app-context";
 import { FeelingInput } from "@/components/FeelingInput";
 import { VerseCard } from "@/components/VerseCard";
-import { VerseOfTheDay } from "@/components/VerseOfTheDay";
 import {
   ReflectionBlock,
   ReflectionSkipped,
 } from "@/components/ReflectionBlock";
-import {
-  TraditionSetting,
-  useTradition,
-} from "@/components/TraditionSetting";
-import { LanguageSetting, useLanguage } from "@/components/LanguageSetting";
 import { ShareSheet } from "@/components/ShareSheet";
 import { fetchWithTimeout } from "@/lib/fetch-timeout";
 
@@ -34,9 +29,7 @@ type ReflectApiResponse = {
 };
 
 export function HomeClient() {
-  const [tradition, setTradition] = useTradition();
-  const [language, setLanguage] = useLanguage();
-  const [showSettings, setShowSettings] = useState(false);
+  const { language, tradition } = useApp();
 
   const [verse, setVerse] = useState<VerseResult | null>(null);
   const [topicLabel, setTopicLabel] = useState<string | null>(null);
@@ -44,7 +37,6 @@ export function HomeClient() {
   const [reflection, setReflection] = useState<Reflection | null>(null);
   const [reflectNote, setReflectNote] = useState<string | null>(null);
   const [reflectLoading, setReflectLoading] = useState(false);
-
   const [status, setStatus] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
@@ -82,7 +74,6 @@ export function HomeClient() {
         );
         return;
       }
-
       if (!res.ok || !json.reflection) {
         setReflectNote(
           json.error ||
@@ -90,12 +81,9 @@ export function HomeClient() {
         );
         return;
       }
-
       setReflection(json.reflection);
     } catch {
-      setReflectNote(
-        "Could not load reflection — the verse is still for you.",
-      );
+      setReflectNote("Could not load reflection — the verse is still for you.");
     } finally {
       setReflectLoading(false);
     }
@@ -146,7 +134,6 @@ export function HomeClient() {
       setTopicLabel(json.topic?.label ?? null);
       setStatus(null);
       setLoading(false);
-
       void fetchReflection(json.verse, text, tradition, scriptureLang);
     } catch {
       setError("Network error. Check your connection and try again.");
@@ -156,114 +143,112 @@ export function HomeClient() {
     }
   }
 
-  function onLanguageChange(id: LocalLanguageId) {
-    setLanguage(id);
-    if (feeling) {
-      void handleFeeling(feeling, "en", id);
-    }
-  }
-
   return (
-    <div className="mx-auto flex w-full max-w-md flex-1 flex-col gap-8 px-5 py-6">
-      <div className="flex items-center justify-between gap-2">
-        <p className="text-xs text-ink-soft">
-          Reading in{" "}
-          <span className="font-semibold text-ink">
-            {getLanguage(language).label}
-          </span>
-          {" + "}
-          English
+    <div className="flex flex-1 flex-col gap-6">
+      {/* Hero */}
+      <section className="space-y-1">
+        <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-gold">
+          Akwaaba · Welcome
         </p>
-        <button
-          type="button"
-          onClick={() => setShowSettings((s) => !s)}
-          className="text-xs font-medium text-ink-soft underline-offset-2 hover:text-ink hover:underline"
-          aria-expanded={showSettings}
+        <h2
+          className="text-[1.75rem] font-semibold leading-tight tracking-tight text-ink"
+          style={{ fontFamily: "var(--font-display), serif" }}
         >
-          {showSettings ? "Close settings" : "Settings"}
-        </button>
-      </div>
+          What&apos;s on your heart?
+        </h2>
+        <p className="text-sm leading-relaxed text-ink-soft">
+          Speak or type a feeling. Receive Scripture in{" "}
+          <span className="font-medium text-ink">
+            {getLanguage(language).nativeName}
+          </span>{" "}
+          and English — ready to share.
+        </p>
+      </section>
 
-      {showSettings && (
-        <section className="space-y-5 rounded-2xl border border-line bg-surface p-4">
-          <LanguageSetting value={language} onChange={onLanguageChange} />
-          <TraditionSetting value={tradition} onChange={setTradition} />
-          <p className="text-[11px] text-ink-soft">
-            Tradition shapes the tone of AI reflections (Gloo). Scripture text
-            always comes from YouVersion — never machine-translated.
-          </p>
-        </section>
-      )}
-
-      <VerseOfTheDay language={language} />
-
-      <section className="space-y-4">
+      {/* Composer */}
+      <section className="dawuro-card-elevated p-4 sm:p-5">
         <FeelingInput
           onSubmit={(t, inputLang) => handleFeeling(t, inputLang)}
           loading={loading}
         />
-
-        {status && (
-          <p className="text-sm text-ink-soft" aria-live="polite">
-            {status}
-          </p>
-        )}
-
-        {error && (
-          <div
-            className="rounded-xl border border-brand/20 bg-gold-soft/40 px-4 py-3 text-sm text-ink"
-            role="alert"
-          >
-            <p>{error}</p>
-            {(error.toLowerCase().includes("biblica") ||
-              error.toLowerCase().includes("license")) && (
-              <p className="mt-2 text-xs text-ink-soft">
-                Accept the Biblica Fast-track license at{" "}
-                <a
-                  href="https://platform.youversion.com/"
-                  className="font-medium text-brand underline"
-                  target="_blank"
-                  rel="noreferrer"
-                >
-                  platform.youversion.com
-                </a>
-                , then try again.
-              </p>
-            )}
-          </div>
-        )}
-
-        {verse && (
-          <div className="space-y-3">
-            {(topicLabel || feeling) && (
-              <p className="text-xs text-ink-soft">
-                {topicLabel && (
-                  <span className="font-medium text-ink">{topicLabel}</span>
-                )}
-                {feeling && (
-                  <span>
-                    {topicLabel ? " · " : ""}
-                    for &ldquo;{feeling}&rdquo;
-                  </span>
-                )}
-              </p>
-            )}
-            <VerseCard verse={verse} />
-
-            {reflectLoading && (
-              <ReflectionBlock reflection={{ english: "" }} loading />
-            )}
-            {!reflectLoading && reflection && (
-              <ReflectionBlock reflection={reflection} />
-            )}
-            {!reflectLoading && !reflection && reflectNote && (
-              <ReflectionSkipped reason={reflectNote} />
-            )}
-
-            <ShareSheet verse={verse} buttonLabel="Share on WhatsApp" />
-          </div>
-        )}
       </section>
+
+      {status && (
+        <p
+          className="flex items-center gap-2 text-sm text-ink-soft"
+          aria-live="polite"
+        >
+          <span className="inline-block h-2 w-2 animate-pulse rounded-full bg-brand" />
+          {status}
+        </p>
+      )}
+
+      {error && (
+        <div
+          className="dawuro-rise rounded-2xl border border-brand/25 bg-gold-soft/50 px-4 py-3 text-sm text-ink"
+          role="alert"
+        >
+          <p>{error}</p>
+          {(error.toLowerCase().includes("biblica") ||
+            error.toLowerCase().includes("license")) && (
+            <p className="mt-2 text-xs text-ink-soft">
+              Accept the Biblica Fast-track license at{" "}
+              <a
+                href="https://platform.youversion.com/"
+                className="font-medium text-brand underline"
+                target="_blank"
+                rel="noreferrer"
+              >
+                platform.youversion.com
+              </a>
+              , then try again.
+            </p>
+          )}
+        </div>
+      )}
+
+      {verse && (
+        <div className="dawuro-rise space-y-4">
+          {(topicLabel || feeling) && (
+            <p className="text-xs text-ink-soft">
+              {topicLabel && (
+                <span className="rounded-full bg-brand/10 px-2.5 py-1 font-semibold text-brand">
+                  {topicLabel}
+                </span>
+              )}
+              {feeling && (
+                <span className="ml-2">
+                  for &ldquo;{feeling}&rdquo;
+                </span>
+              )}
+            </p>
+          )}
+
+          <VerseCard verse={verse} />
+
+          {reflectLoading && (
+            <ReflectionBlock reflection={{ english: "" }} loading />
+          )}
+          {!reflectLoading && reflection && (
+            <ReflectionBlock reflection={reflection} />
+          )}
+          {!reflectLoading && !reflection && reflectNote && (
+            <ReflectionSkipped reason={reflectNote} />
+          )}
+
+          <ShareSheet verse={verse} buttonLabel="Share on WhatsApp" />
+        </div>
+      )}
+
+      {!verse && !loading && !error && (
+        <p className="text-center text-[12px] text-ink-soft">
+          Or open{" "}
+          <a href="/today" className="font-medium text-brand underline-offset-2 hover:underline">
+            Today
+          </a>{" "}
+          for the Verse of the Day.
+        </p>
+      )}
     </div>
   );
 }

@@ -5,18 +5,12 @@ import type { LocalLanguageId } from "@/lib/languages";
 import { getLanguage } from "@/lib/languages";
 
 type Props = {
-  /** Local-language text to synthesize. */
   text: string;
   language: LocalLanguageId;
-  /** Optional YouVersion professional audio URL. */
   proAudioUrl?: string;
   label?: string;
 };
 
-/**
- * Tap-to-play local-language audio. Fetches /api/speak (Khaya TTS) or uses pro URL.
- * Never autoplays. Graceful failure leaves the verse readable.
- */
 export function AudioPlayer({
   text,
   language,
@@ -56,7 +50,7 @@ export function AudioPlayer({
 
   if (!canTts && !proAudioUrl) {
     return (
-      <p className="text-xs text-ink-soft">
+      <p className="rounded-xl bg-bg-deep/40 px-3 py-2 text-xs text-ink-soft">
         Audio not available for {lang.name} yet — you can still read the verse.
       </p>
     );
@@ -149,7 +143,7 @@ export function AudioPlayer({
         type="button"
         onClick={toggle}
         disabled={loading || !text}
-        className="inline-flex min-h-11 w-full items-center justify-center gap-2 rounded-xl border border-line bg-gold-soft/60 px-4 text-sm font-semibold text-ink transition hover:bg-gold-soft disabled:cursor-not-allowed disabled:opacity-50"
+        className="inline-flex min-h-11 w-full items-center justify-center gap-2 rounded-2xl border border-gold/40 bg-gold-soft/70 px-4 text-sm font-semibold text-ink transition hover:bg-gold-soft disabled:cursor-not-allowed disabled:opacity-50"
         aria-label={playing ? "Pause audio" : playLabel}
       >
         {loading ? (

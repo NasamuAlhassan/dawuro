@@ -39,11 +39,6 @@ function getSpeechRecognition():
   return w.SpeechRecognition || w.webkitSpeechRecognition || null;
 }
 
-/**
- * English → Web Speech.
- * Khaya ASR languages → MediaRecorder → /api/transcribe.
- * Type-only languages → gentle prompt to type.
- */
 export function MicRecorder({ language, onTranscript, disabled }: Props) {
   const input = getInputLanguage(language);
   const [listening, setListening] = useState(false);
@@ -77,7 +72,7 @@ export function MicRecorder({ language, onTranscript, disabled }: Props) {
   const startEnglish = useCallback(() => {
     const SR = getSpeechRecognition();
     if (!SR) {
-      setStatus("Voice not supported here — type instead.");
+      setStatus("Voice not supported — type instead.");
       return;
     }
     const rec = new SR();
@@ -102,9 +97,7 @@ export function MicRecorder({ language, onTranscript, disabled }: Props) {
 
   const startKhaya = useCallback(async () => {
     if (!input.khayaAsr) {
-      setStatus(
-        `Voice input for ${input.label} isn’t set up — type in ${input.label}; Khaya will still translate.`,
-      );
+      setStatus(`Type in ${input.label} — Khaya will translate.`);
       return;
     }
     if (!navigator.mediaDevices?.getUserMedia) {
@@ -130,7 +123,7 @@ export function MicRecorder({ language, onTranscript, disabled }: Props) {
           type: mime.split(";")[0],
         });
         if (!blob.size) {
-          setStatus("No audio captured — try again or type.");
+          setStatus("No audio — try again or type.");
           setListening(false);
           return;
         }
@@ -151,7 +144,7 @@ export function MicRecorder({ language, onTranscript, disabled }: Props) {
             const err = (json.error || "").toLowerCase();
             if (err.includes("invalid language") || res.status === 400) {
               setStatus(
-                `Khaya ASR didn’t accept ${input.label} on this key — type in ${input.label} and we’ll translate.`,
+                `ASR for ${input.label} unavailable — type it; Khaya will translate.`,
               );
             } else {
               setStatus(json.error || "Couldn't understand — type instead.");
@@ -168,7 +161,7 @@ export function MicRecorder({ language, onTranscript, disabled }: Props) {
       };
       mr.start();
       setListening(true);
-      setStatus("Listening… (tap again to stop)");
+      setStatus("Listening… tap to stop");
     } catch {
       setStatus("Mic permission denied — type instead.");
       setListening(false);
@@ -193,23 +186,27 @@ export function MicRecorder({ language, onTranscript, disabled }: Props) {
   }
 
   return (
-    <div className="flex flex-col gap-1.5">
+    <div className="relative flex flex-col items-center">
       <button
         type="button"
         onClick={toggle}
         disabled={disabled}
         aria-pressed={listening}
-        className={`inline-flex min-h-12 min-w-12 items-center justify-center rounded-xl border px-4 text-sm font-semibold transition disabled:opacity-50 ${
+        aria-label={listening ? "Stop listening" : `Speak in ${input.label}`}
+        className={`flex h-12 w-12 shrink-0 items-center justify-center rounded-full text-lg transition disabled:opacity-50 ${
           listening
-            ? "border-brand bg-brand text-white shadow-[0_0_0_4px_rgba(178,58,22,0.2)]"
-            : "border-line bg-surface text-ink hover:border-gold hover:bg-gold-soft/40"
+            ? "bg-brand text-white shadow-[0_0_0_6px_rgba(178,58,22,0.2)]"
+            : "border border-line bg-surface text-brand shadow-sm hover:border-gold hover:bg-gold-soft/50"
         }`}
         title={`Speak in ${input.label}`}
       >
-        {listening ? "⏹" : "🎤"}
+        {listening ? "■" : "🎤"}
       </button>
       {status && (
-        <p className="text-xs text-ink-soft" aria-live="polite">
+        <p
+          className="absolute top-full z-10 mt-1 w-40 text-center text-[10px] leading-snug text-ink-soft"
+          aria-live="polite"
+        >
           {status}
         </p>
       )}

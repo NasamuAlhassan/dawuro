@@ -1,9 +1,10 @@
 import type { Metadata, Viewport } from "next";
 import { Noto_Sans, Noto_Serif, Source_Serif_4 } from "next/font/google";
 import { OfflineBanner } from "@/components/OfflineBanner";
+import { AppProvider } from "@/lib/app-context";
+import { AppShell } from "@/components/AppShell";
 import "./globals.css";
 
-/** UI sans — good Latin coverage; Noto handles Twi diacritics (ɛ ɔ Ɛ Ɔ). */
 const notoSans = Noto_Sans({
   variable: "--font-ui",
   subsets: ["latin", "latin-ext"],
@@ -11,7 +12,6 @@ const notoSans = Noto_Sans({
   display: "swap",
 });
 
-/** Verse serif — diacritic-safe for Twi Scripture text. */
 const notoSerif = Noto_Serif({
   variable: "--font-verse",
   subsets: ["latin", "latin-ext"],
@@ -32,7 +32,7 @@ export const metadata: Metadata = {
   ),
   title: "Dawuro — Scripture in the voice of your people",
   description:
-    "Speak or type what's on your heart. Receive Scripture in English and Twi, hear it aloud, and share it on WhatsApp.",
+    "Speak or type what's on your heart. Receive Scripture in your language and English, hear it aloud, and share it on WhatsApp.",
   applicationName: "Dawuro",
   appleWebApp: {
     capable: true,
@@ -42,7 +42,7 @@ export const metadata: Metadata = {
   openGraph: {
     title: "Dawuro",
     description:
-      "Scripture in English and Twi — spoken aloud, shareable on WhatsApp.",
+      "Scripture in your language — spoken aloud, shareable on WhatsApp.",
     type: "website",
     images: [{ url: "/og.png", width: 512, height: 512, alt: "Dawuro" }],
   },
@@ -59,6 +59,7 @@ export const viewport: Viewport = {
   width: "device-width",
   initialScale: 1,
   themeColor: "#B23A16",
+  viewportFit: "cover",
 };
 
 export default function RootLayout({
@@ -71,9 +72,11 @@ export default function RootLayout({
       lang="en"
       className={`${notoSans.variable} ${notoSerif.variable} ${sourceSerif.variable} h-full antialiased`}
     >
-      <body className="min-h-full flex flex-col bg-background text-foreground">
+      <body className="flex min-h-full flex-col text-foreground">
         <OfflineBanner />
-        {children}
+        <AppProvider>
+          <AppShell>{children}</AppShell>
+        </AppProvider>
       </body>
     </html>
   );
