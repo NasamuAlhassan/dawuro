@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import type { VerseResult } from "@/lib/types";
 import type { LocalLanguageId } from "@/lib/languages";
+import { useApp } from "@/lib/app-context";
 import { VerseCard } from "@/components/VerseCard";
 import { ShareSheet } from "@/components/ShareSheet";
 import { IconLoader } from "@/components/ui/Icons";
@@ -18,11 +19,14 @@ type Props = {
 };
 
 export function VerseOfTheDay({ language }: Props) {
+  const { hydrated } = useApp();
   const [data, setData] = useState<VotdResponse | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    // Wait for stored preferences so we fetch once, in the right language.
+    if (!hydrated) return;
     let cancelled = false;
     setLoading(true);
     setError(null);
@@ -53,7 +57,7 @@ export function VerseOfTheDay({ language }: Props) {
     return () => {
       cancelled = true;
     };
-  }, [language]);
+  }, [language, hydrated]);
 
   if (loading) {
     return (

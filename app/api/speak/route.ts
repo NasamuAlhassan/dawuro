@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { KhayaError, synthesizeSpeech } from "@/lib/khaya";
 import { getLanguage, isLocalLanguageId } from "@/lib/languages";
+import { clientKey, rateLimit, tooManyRequests } from "@/lib/rate-limit";
 
 export const runtime = "nodejs";
 
@@ -18,6 +19,11 @@ type Body = {
  * POST { text, language } → audio (WAV) via Khaya TTS when available.
  */
 export async function POST(req: Request) {
+  const limited = rateLimit(`speak:${clientKey(req)}`, 20, 60_000);
+  if (!limited.ok) {
+    return tooManyRequests(limited.retryAfterS);
+  }
+
   let body: Body;
   try {
     body = (await req.json()) as Body;

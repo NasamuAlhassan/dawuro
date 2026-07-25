@@ -10,6 +10,7 @@ import {
   renderCardToPng,
   slugifyRef,
 } from "@/lib/card";
+import { receiveUrl } from "@/lib/share";
 import { getLanguage } from "@/lib/languages";
 import { IconLoader, IconShare } from "@/components/ui/Icons";
 
@@ -29,6 +30,26 @@ export function ShareSheet({
 
   const local = verse.local || verse.twi;
   const lang = getLanguage(verse.localLanguageId || local?.languageId);
+  const link = receiveUrl(verse);
+
+  function shareMessage(): string {
+    const fromKhaya = verse.localFromKhaya || local?.source === "khaya";
+    const invite = lang.khayaTts
+      ? `Hear it aloud + reply with a verse of your own:\n${link}`
+      : `Read it + reply with a verse of your own:\n${link}`;
+    const attribution = fromKhaya
+      ? `(${lang.label} text via Khaya AI — the link has the published English verse.)`
+      : local?.copyright
+        ? `— ${local.copyright}`
+        : "";
+    const parts = [
+      `${verse.humanReference} · ${lang.nativeName}`,
+      local?.text || "",
+      attribution,
+      invite,
+    ];
+    return parts.filter(Boolean).join("\n\n");
+  }
 
   async function fetchAudioBlob(): Promise<Blob | null> {
     if (!local) return null;
@@ -78,7 +99,7 @@ export function ShareSheet({
 
       const files = audioFile ? [imageFile, audioFile] : [imageFile];
       const shareTitle = `${verse.humanReference} · Dawuro`;
-      const shareText = `${verse.humanReference}\n\n${local.text}\n\n${verse.english.text}\n\n— via Dawuro`;
+      const shareText = shareMessage();
 
       if (canShareFiles() && navigator.canShare?.({ files })) {
         setStatus("Opening share…");
@@ -88,7 +109,7 @@ export function ShareSheet({
             title: shareTitle,
             text: shareText,
           });
-          setStatus("Shared.");
+          setStatus("Shared. The link inside lets them reply with a verse.");
           return;
         } catch (e) {
           if (e instanceof Error && e.name === "AbortError") {
@@ -105,8 +126,8 @@ export function ShareSheet({
       }
       setStatus(
         audioBlob
-          ? "Image and audio saved — send them on WhatsApp."
-          : "Image saved — send it on WhatsApp.",
+          ? "Image and audio saved — send them on WhatsApp with the link below."
+          : "Image saved — send it on WhatsApp with the link below.",
       );
     } catch (e) {
       console.error("[ShareSheet]", e);
@@ -114,6 +135,35 @@ export function ShareSheet({
       setStatus(null);
     } finally {
       setBusy(false);
+    }
+  }
+
+  /** Text-only share: the link unfurls into a verse card inside WhatsApp. */
+  async function handleShareLink() {
+    setError(null);
+    const text = shareMessage();
+    if (typeof navigator !== "undefined" && navigator.share) {
+      try {
+        await navigator.share({
+          title: `${verse.humanReference} · Dawuro`,
+          text,
+        });
+        setStatus("Link shared — it previews as a verse card in the chat.");
+        return;
+      } catch (e) {
+        if (e instanceof Error && e.name === "AbortError") return;
+      }
+    }
+    await copyLink(text);
+  }
+
+  async function copyLink(text?: string) {
+    setError(null);
+    try {
+      await navigator.clipboard.writeText(text || link);
+      setStatus("Copied — paste it into WhatsApp.");
+    } catch {
+      setStatus(link);
     }
   }
 
@@ -137,8 +187,31 @@ export function ShareSheet({
           </>
         )}
       </button>
+
+      <div className="flex gap-2">
+        <button
+          type="button"
+          onClick={() => void handleShareLink()}
+          disabled={busy || !local?.text}
+          className="inline-flex min-h-10 flex-1 items-center justify-center rounded-[var(--radius-sm)] border border-line bg-surface px-3 text-[12px] font-medium text-ink transition hover:border-line-strong hover:bg-surface-2 disabled:cursor-not-allowed disabled:opacity-50"
+        >
+          Share link only
+        </button>
+        <button
+          type="button"
+          onClick={() => void copyLink()}
+          disabled={busy || !local?.text}
+          className="inline-flex min-h-10 flex-1 items-center justify-center rounded-[var(--radius-sm)] border border-line bg-surface px-3 text-[12px] font-medium text-ink transition hover:border-line-strong hover:bg-surface-2 disabled:cursor-not-allowed disabled:opacity-50"
+        >
+          Copy link
+        </button>
+      </div>
+
       {status && (
-        <p className="text-center text-[12px] text-ink-soft" aria-live="polite">
+        <p
+          className="break-all text-center text-[12px] text-ink-soft"
+          aria-live="polite"
+        >
           {status}
         </p>
       )}

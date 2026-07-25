@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import type { LocalLanguageId } from "@/lib/languages";
+import { useApp } from "@/lib/app-context";
 import { IconChevronRight, IconLoader } from "@/components/ui/Icons";
 
 type Props = {
@@ -13,10 +14,13 @@ type Props = {
  * Compact home teaser for Verse of the Day → full /today experience.
  */
 export function TodayTeaser({ language }: Props) {
+  const { hydrated } = useApp();
   const [ref, setRef] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    // Wait for stored preferences so we fetch once, in the right language.
+    if (!hydrated) return;
     let cancelled = false;
     setLoading(true);
     (async () => {
@@ -39,7 +43,7 @@ export function TodayTeaser({ language }: Props) {
     return () => {
       cancelled = true;
     };
-  }, [language]);
+  }, [language, hydrated]);
 
   return (
     <Link

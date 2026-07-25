@@ -5,7 +5,7 @@ export default function manifest(): MetadataRoute.Manifest {
     name: "Dawuro",
     short_name: "Dawuro",
     description:
-      "Scripture in the voice of your people — English + Twi, spoken aloud, shareable on WhatsApp.",
+      "Scripture as conversation — a verse in your language and English, spoken aloud, passed person to person on WhatsApp.",
     start_url: "/",
     display: "standalone",
     background_color: "#FBF7F0",

@@ -2,9 +2,12 @@ import { NextResponse } from "next/server";
 import { getBilingualPassage, YouVersionError } from "@/lib/youversion";
 import {
   allCuratedReferences,
+  DEMO_PATH,
   mapFeelingToReference,
+  SUGGESTED_FEELINGS,
   topicForReference,
 } from "@/lib/verses";
+import { clientKey, rateLimit, tooManyRequests } from "@/lib/rate-limit";
 import {
   getInputLanguage,
   getLanguage,
@@ -15,6 +18,15 @@ import { isGlooConfigured, mapFeelingWithGloo } from "@/lib/gloo";
 
 export const runtime = "nodejs";
 
+/**
+ * One-tap suggestion chips and the scripted demo phrase stay on the curated
+ * map so the filmed/judged path is reproducible; free text goes to Gloo.
+ */
+const CURATED_FAST_PATH = new Set<string>([
+  DEMO_PATH.feeling.toLowerCase(),
+  ...SUGGESTED_FEELINGS.map((s) => s.feeling.toLowerCase()),
+]);
+
 type Body = {
   feeling?: string;
   reference?: string;
@@ -24,10 +36,17 @@ type Body = {
 
 /**
  * POST { feeling, language?, inputLanguage? }
- * Curated map first; if weak match and Gloo is configured, Gloo picks a curated USFM.
+ * Gloo AI is the primary brain: it picks the best verse from the curated
+ * allow-list (so it can choose, never write, Scripture). The keyword map is
+ * the offline/safety fallback when Gloo is unavailable or declines.
  * Scripture text always from YouVersion (+ Khaya local only when no published Bible).
  */
 export async function POST(req: Request) {
+  const limited = rateLimit(`verse:${clientKey(req)}`, 30, 60_000);
+  if (!limited.ok) {
+    return tooManyRequests(limited.retryAfterS);
+  }
+
   let body: Body;
   try {
     body = (await req.json()) as Body;
@@ -86,14 +105,22 @@ export async function POST(req: Request) {
     topicLabel = "Requested";
     mappingSource = "explicit";
   } else {
+    // Curated keyword match — always computed as the safety net.
     const curated = mapFeelingToReference(feelingForMap);
     reference = curated.reference;
     topicId = curated.topic.id;
     topicLabel = curated.topic.label;
     mappingSource = "curated";
 
-    // Weak/no keyword hit → ask Gloo to pick from the curated allow-list
-    if (curated.score === 0 && isGlooConfigured()) {
+    // Gloo first for free text: the faith-tuned model picks from the
+    // curated allow-list. It understands nuance the keyword map can't
+    // ("I can't sleep before results day" → anxiety). Falls back to the
+    // curated pick on any failure, timeout, or out-of-list answer.
+    // One-tap chips skip Gloo so the demo path stays deterministic.
+    const isChipFeeling =
+      curated.score > 0 &&
+      CURATED_FAST_PATH.has(feelingForMap.trim().toLowerCase());
+    if (isGlooConfigured() && !isChipFeeling) {
       const glooPick = await mapFeelingWithGloo(
         feelingForMap,
         allCuratedReferences(),

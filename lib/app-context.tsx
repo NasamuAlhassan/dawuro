@@ -24,6 +24,12 @@ type AppContextValue = {
   setLanguage: (id: LocalLanguageId) => void;
   tradition: Tradition;
   setTradition: (t: Tradition) => void;
+  /**
+   * True once stored preferences have been applied after mount.
+   * Data-fetching components wait for this so the first request uses the
+   * user's real language instead of the server default.
+   */
+  hydrated: boolean;
 };
 
 const AppContext = createContext<AppContextValue | null>(null);
@@ -55,12 +61,12 @@ export function AppProvider({ children }: { children: ReactNode }) {
     DEFAULT_LOCAL_LANGUAGE,
   );
   const [tradition, setTraditionState] = useState<Tradition>("evangelical");
-  const [ready, setReady] = useState(false);
+  const [hydrated, setHydrated] = useState(false);
 
   useEffect(() => {
     setLanguageState(loadLanguage());
     setTraditionState(loadTradition());
-    setReady(true);
+    setHydrated(true);
   }, []);
 
   const setLanguage = useCallback((id: LocalLanguageId) => {
@@ -82,21 +88,13 @@ export function AppProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const value = useMemo(
-    () => ({ language, setLanguage, tradition, setTradition }),
-    [language, setLanguage, tradition, setTradition],
+    () => ({ language, setLanguage, tradition, setTradition, hydrated }),
+    [language, setLanguage, tradition, setTradition, hydrated],
   );
 
-  // Avoid hydration mismatch flashes
-  if (!ready) {
-    return (
-      <AppContext.Provider value={value}>
-        <div className="flex min-h-[40vh] items-center justify-center text-sm text-ink-soft">
-          Opening Dawuro…
-        </div>
-      </AppContext.Provider>
-    );
-  }
-
+  // Children render immediately (server HTML included) with the default
+  // language; stored preferences apply after mount. Initial client state
+  // matches the server render, so there is no hydration mismatch.
   return <AppContext.Provider value={value}>{children}</AppContext.Provider>;
 }
 

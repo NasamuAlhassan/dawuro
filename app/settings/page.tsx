@@ -43,8 +43,10 @@ export default function SettingsPage() {
         </h2>
         <p className="text-[12px] leading-relaxed text-ink-soft">
           Dawuro means the town crier&apos;s call — a message for everyone.
-          Scripture from YouVersion · Reflection from Gloo AI · Voice from
-          GhanaNLP Khaya. Publisher credits appear with each verse.
+          Every verse you share carries a link: whoever opens it hears the
+          verse and can send one back. Scripture from YouVersion · Reflection
+          from Gloo AI · Voice from GhanaNLP Khaya. Publisher credits appear
+          with each verse.
         </p>
       </section>
     </div>

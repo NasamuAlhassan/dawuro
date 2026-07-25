@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { KhayaError, transcribeSpeech } from "@/lib/khaya";
+import { clientKey, rateLimit, tooManyRequests } from "@/lib/rate-limit";
 
 export const runtime = "nodejs";
 
@@ -9,6 +10,11 @@ export const runtime = "nodejs";
  * English speech should use Web Speech on the client and skip this route.
  */
 export async function POST(req: Request) {
+  const limited = rateLimit(`transcribe:${clientKey(req)}`, 20, 60_000);
+  if (!limited.ok) {
+    return tooManyRequests(limited.retryAfterS);
+  }
+
   try {
     const contentType = req.headers.get("content-type") || "";
     const urlLang = new URL(req.url).searchParams.get("language");

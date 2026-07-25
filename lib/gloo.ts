@@ -37,7 +37,7 @@ export function isGlooConfigured(): boolean {
   return hasGlooKeys();
 }
 
-export async function getGlooToken(): Promise<string> {
+export async function getGlooToken(signal?: AbortSignal): Promise<string> {
   if (cached && Date.now() < cached.exp - 60_000) {
     return cached.token;
   }
@@ -51,6 +51,7 @@ export async function getGlooToken(): Promise<string> {
 
   const res = await fetch(tokenUrl, {
     method: "POST",
+    signal,
     headers: {
       "Content-Type": "application/x-www-form-urlencoded",
       Authorization: `Basic ${basic}`,
@@ -162,10 +163,13 @@ export async function generateReflection(params: {
   };
 }
 
+/** Mapping runs before the verse fetch — keep it snappy; curated map is the fallback. */
+const MAPPING_TIMEOUT_MS = 8_000;
+
 /**
  * Map free-text feeling → a curated USFM reference.
  * Gloo only chooses *which* verse; YouVersion always supplies the text.
- * Returns null if Gloo is offline or output is not in the allow-list.
+ * Returns null if Gloo is offline, slow, or output is not in the allow-list.
  */
 export async function mapFeelingWithGloo(
   feeling: string,
@@ -173,10 +177,17 @@ export async function mapFeelingWithGloo(
 ): Promise<{ reference: string; topicLabel: string } | null> {
   if (!isGlooConfigured() || !feeling.trim()) return null;
 
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), MAPPING_TIMEOUT_MS);
+
   try {
-    const token = await getGlooToken();
+    // Token fetch shares the deadline — a stalling OAuth endpoint must not
+    // hold the (now-primary) mapping path past the curated fallback.
+    const token = await getGlooToken(controller.signal);
+    if (controller.signal.aborted) return null;
     const list = allowedReferences.join(", ");
     const res = await fetch(COMPLETIONS_URL, {
+      signal: controller.signal,
       method: "POST",
       headers: {
         Authorization: `Bearer ${token}`,
@@ -220,5 +231,7 @@ export async function mapFeelingWithGloo(
   } catch (e) {
     console.warn("[gloo] mapFeelingWithGloo failed", e);
     return null;
+  } finally {
+    clearTimeout(timer);
   }
 }

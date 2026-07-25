@@ -3,6 +3,7 @@
 import { forwardRef } from "react";
 import type { VerseResult } from "@/lib/types";
 import { getLanguage } from "@/lib/languages";
+import { receiveUrlDisplay } from "@/lib/share";
 
 type Props = {
   verse: VerseResult;
@@ -133,7 +134,8 @@ export const ShareableCard = forwardRef<HTMLDivElement, Props>(
               color: "#9E3414",
             }}
           >
-            dawuro · share the Word
+            {lang.khayaTts ? "Hear it aloud" : "Read it + reply"} ·{" "}
+            {receiveUrlDisplay(verse)}
           </div>
         </div>
       </div>

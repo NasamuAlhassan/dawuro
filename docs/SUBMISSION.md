@@ -1,17 +1,18 @@
-# Phase 8 — Kaggle submission assets
+# Kaggle submission assets
 
-Judging is **primarily the 3-minute video**, backed by writeup + public code.
+Judging weights: Impact & Vision 40 / Video 30 / Technical Depth 30.
+The writeup below is 435 words — buffer under the 500-word limit. Do not let edits push it past 450.
 
 ---
 
 ## Deliverables checklist
 
-- [ ] **Kaggle Writeup** — title, subtitle, ≤ **500 words**
+- [ ] **Kaggle Writeup** — title, subtitle, the writeup below (≤500 words)
 - [ ] **Cover image**
 - [ ] **Media gallery** — screenshots + video
 - [ ] **Public notebook/repo**
 - [ ] **Video** — ≤ **3 minutes**, public on YouTube, linked in Writeup
-- [ ] **Public project link** — live `*.vercel.app`
+- [ ] **Public project link** — live `*.vercel.app` (with `NEXT_PUBLIC_APP_URL` set)
 - [ ] **Click Submit** — drafts are not judged
 
 See **DEMO.md** for the fixed product path to record.
@@ -23,43 +24,41 @@ See **DEMO.md** for the fixed product path to record.
 | Time | Beat |
 |------|------|
 | **0:00–0:20** | **The gap.** WhatsApp voice notes alive; Bible app unopened. |
-| **0:20–0:50** | **Meet her.** Student in Accra, exams, anxious. Opens Dawuro. |
-| **0:50–1:30** | **Product live.** Feeling → Philippians 4:6–7 EN+Twi → hear Twi → reflection. Real capture. |
-| **1:30–2:00** | **It travels.** Share → WhatsApp → older woman plays audio in Twi. Hold the face. |
-| **2:00–2:30** | **Scale.** Oral culture, WhatsApp, tens of millions of Twi speakers. |
-| **2:30–3:00** | **Engineering.** YouVersion + Gloo + Khaya, live. End on the human. |
+| **0:20–0:45** | **Meet her.** Student in Accra, exams, anxious. Opens Dawuro. |
+| **0:45–1:20** | **Product live.** Feeling → Philippians 4:6–7 EN+Twi → hear Twi → reflection. Real capture. |
+| **1:20–1:50** | **It travels.** Share → WhatsApp → on the second phone the link unfurls as a verse card in the chat. Older woman taps it, plays the Twi audio. Hold the face. |
+| **1:50–2:15** | **The reply.** Same page: "Your turn — what's on your heart?" She speaks, gets her own verse, sends it back into the thread. Scripture as conversation. |
+| **2:15–2:40** | **Scale.** Oral culture, WhatsApp groups, tens of millions of speakers, zero-install loop. |
+| **2:40–3:00** | **Engineering.** YouVersion + Gloo + Khaya, live network tab. End on the human. |
 
-**Tips:** subtitles; real device; ≤ 3:00 hard stop.
+**Tips:** subtitles; real devices; ≤ 3:00 hard stop.
 
 ---
 
-## Writeup draft (trim to ≤ 500 words)
+## Writeup (435 words — final)
 
-**Title:** Dawuro — Scripture in the Voice of Your People  
+**Title:** Dawuro — Scripture as Conversation on WhatsApp
 
-**Subtitle:** A voice-first companion that puts the Bible where Ghanaians already are — WhatsApp, voice notes, community.
+**Subtitle:** Speak a feeling, receive a verse in the language of your heart, send it on — and whoever opens it replies with a verse of their own. No app on either side.
 
-**The problem.** Most Scripture apps assume English readers and a study habit. In Ghana, digital life runs on WhatsApp voice notes and images; oral culture is strong; Twi is the language of the heart. The Bible already exists in Twi on YouVersion. The gap is delivery that fits how people actually communicate.
+**The gap.** The brief says the goal is not another Bible app. Good — Ghana does not need one. Digital life here runs through WhatsApp voice notes: short, spoken, person to person. Oral culture is strong, and Twi, Ewe, or Dagbani is the language of the heart even when English is the language of school. The Bible already exists in these languages on YouVersion. What is missing is Scripture that moves the way conversation moves.
 
-**What we built.** Dawuro is a mobile web app: speak or type a feeling (English or Ghanaian languages), receive the most relevant verse in **English and a local language**, hear it when TTS is available, get a short faith-safe reflection, and download an **image + audio card** for WhatsApp. The receiver needs no app. Capabilities: speak-your-heart retrieval, shareable cards, daily verse as a voice note.
+**The loop.** Dawuro (Akan: the town crier's gong) is a mobile web app built around one round trip. You speak or type a feeling — "I'm anxious about my exams" — in English or a Ghanaian language. A verse comes back in English and your language, spoken aloud, with a short pastoral reflection. You share it on WhatsApp: an image card, an audio clip, and a link. That link unfurls in the chat as a verse card. The person who taps it needs no app and no login — the verse renders in their browser, they press play, and then the page asks: your turn, what is on your heart? They answer, get their own verse, and send it back into the same thread. The receiver is a user. Scripture becomes a conversation, not a broadcast.
 
-**How the APIs power it.**
-- **YouVersion Platform API** — authoritative passages and Verse of the Day. We never invent verse text. When a language has a published Bible (e.g. Asante Twi), that text is used.  
-- **Gloo AI Studio** — Completions v2 for warm, tradition-aware reflections, and optional free-text feeling→curated-reference mapping. Gloo chooses *which* verse; YouVersion supplies *the* words. Flourishing Engine safety dimensions and the `tradition` parameter matter for spiritual care.  
-- **GhanaNLP Khaya** — Twi (and other) ASR/TTS, and translation for languages not yet on YouVersion (e.g. Kusaal), always labelled clearly so published Scripture stays distinct.
+**How the APIs power it.** Gloo AI is the brain: its faith-tuned model reads the feeling and chooses the best verse — but only from a curated allow-list, validated server-side, so it can choose Scripture yet never write it. Gloo's Completions v2 also writes the reflection, tuned by tradition (evangelical, catholic, mainline). YouVersion Platform API is the only source of Scripture words: English (BSB) plus published local Bibles like Asante Twi (ASNA). GhanaNLP Khaya is the voice — speech recognition for feelings spoken in Twi, Ewe, Ga, Dagbani, Kusaal, or Yorùbá, and text-to-speech so the verse is heard, not just read.
 
-**Architecture.** Next.js on Vercel; secrets only in route handlers; curated feeling→verse backbone; audio prefers human narration when available else Khaya TTS; PNG cards with diacritic-safe fonts.
+**The guardrails.** Published Scripture is never machine-translated. When a language has no Bible on YouVersion — Kusaal, Ga, Dagbani — the local text is a clearly labelled Khaya translation of the YouVersion English verse, and English remains the published Scripture. Publisher attribution appears on every card, share image, and link preview. If Gloo is offline, a curated keyword map answers instead; the loop never breaks.
 
-**Why it matters.** Tens of millions of Twi-adjacent speakers; church WhatsApp groups that already share audio; a share loop that spreads Scripture person to person with no install. Dawuro is a distribution layer for Scripture that already exists — it just needed a way to travel.
-
-*(Trim to ≤500 words before submit.)*
+**The scale.** Church WhatsApp groups already pass audio hand to hand. Tens of millions of people speak the nineteen languages Dawuro serves today. Every shared verse carries its own zero-install invitation to reply, so each conversation seeds the next one. Dawuro is a delivery path for Scripture that already exists — built for the way people already talk.
 
 ---
 
 ## Pre-submit checks
 
-- [ ] Live URL works on a phone end to end (incl. share receive)
-- [ ] Both required APIs visibly used; Scripture never MT’d when YouVersion has it
+- [ ] Live URL works on a phone end to end (incl. opening the receive link and replying)
+- [ ] `NEXT_PUBLIC_APP_URL` set on Vercel — receive links and WhatsApp previews depend on it
+- [ ] Both required APIs visibly used; Scripture never MT'd when YouVersion has it
 - [ ] Video public, ≤3:00, linked
 - [ ] Repo public; README complete
+- [ ] Attach public notebook (`notebook/dawuro-architecture.ipynb`)
 - [ ] Writeup **submitted**, not draft

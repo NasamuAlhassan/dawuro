@@ -8,7 +8,7 @@
 
 import { requireYouVersionEnv } from "@/lib/env";
 import { usfmToHuman } from "@/lib/verses";
-import type { VerseResult } from "@/lib/types";
+import type { PassageSide, VerseResult } from "@/lib/types";
 import {
   ENGLISH_BIBLE,
   getLanguage,
@@ -148,6 +148,40 @@ const passageCache = new Map<
 const PASSAGE_TTL_MS = 1000 * 60 * 30; // 30 min
 
 /**
+ * In-flight dedupe: metadata, page, and OG image can all ask for the same
+ * passage in the same instant (one WhatsApp unfurl = three renders). Share
+ * one promise per key so YouVersion/Khaya are hit once, not three times.
+ */
+const inflightPassages = new Map<string, Promise<VerseResult>>();
+
+/**
+ * English side only — the fast path for crawler-facing surfaces
+ * (link-preview OG images, generateMetadata) and for the first paint of
+ * receive pages in languages whose local text needs a slow Khaya render.
+ * Never triggers Khaya, so bots can't drain translate quota.
+ */
+export async function getEnglishSide(
+  usfm: string,
+): Promise<{ side: PassageSide; humanReference: string }> {
+  const enPassage = await getPassage(ENGLISH_BIBLE.id, usfm, "English");
+  const enCopyright = await resolveCopyright(
+    ENGLISH_BIBLE.id,
+    ENGLISH_BIBLE.copyrightFallback,
+  );
+  return {
+    side: {
+      languageId: "en",
+      label: "English",
+      versionId: String(ENGLISH_BIBLE.id),
+      text: cleanPassageText(enPassage.content),
+      copyright: enCopyright,
+      source: "youversion",
+    },
+    humanReference: enPassage.reference || usfmToHuman(usfm),
+  };
+}
+
+/**
  * English from YouVersion + local side:
  * - published YouVersion Bible when bibleId is set
  * - else Khaya translation of the English verse (Kusaal, Ga, …)
@@ -163,6 +197,23 @@ export async function getBilingualPassage(
     return hit.value;
   }
 
+  const inflight = inflightPassages.get(cacheKey);
+  if (inflight) return inflight;
+
+  const pending = buildBilingualPassage(usfm, display, cacheKey).finally(
+    () => {
+      inflightPassages.delete(cacheKey);
+    },
+  );
+  inflightPassages.set(cacheKey, pending);
+  return pending;
+}
+
+async function buildBilingualPassage(
+  usfm: string,
+  display: LanguageConfig,
+  cacheKey: string,
+): Promise<VerseResult> {
   const enPassage = await getPassage(
     ENGLISH_BIBLE.id,
     usfm,
