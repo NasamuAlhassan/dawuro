@@ -13,7 +13,16 @@
 import { createHash } from "crypto";
 import { getCachedAudio, setCachedAudio } from "@/lib/audio";
 
-const KHAYA_BASE = "https://translation-api.ghananlp.org";
+/**
+ * The public domain (translation-api.ghananlp.org) sits behind Cloudflare
+ * bot protection that challenges datacenter IPs — every call from Vercel
+ * serverless got a 403 "Just a moment..." page. The Azure API Management
+ * gateway hostname serves the exact same API with the same subscription
+ * key and no Cloudflare in front, so we call it directly.
+ */
+const KHAYA_BASE =
+  process.env.KHAYA_API_BASE?.trim() ||
+  "https://translation-ghananlp.azure-api.net";
 const TTS_URL = `${KHAYA_BASE}/tts/v1/synthesize`;
 const TRANSLATE_URL = `${KHAYA_BASE}/v1/translate`;
 const ASR_URL = `${KHAYA_BASE}/asr/v1/transcribe`;
