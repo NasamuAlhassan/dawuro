@@ -12,6 +12,42 @@ type Props = {
   label?: string;
 };
 
+/**
+ * Reading paces. Scripture wants room to breathe — Khaya's TTS has no
+ * speed parameter, so we slow playback client-side with preservesPitch
+ * (the voice stays natural, only the pace changes). "Gentle" is the
+ * default for verse reading.
+ */
+const PACES = [
+  { value: 0.7, label: "Slow" },
+  { value: 0.85, label: "Gentle" },
+  { value: 1, label: "Natural" },
+] as const;
+const PACE_KEY = "dawuro_audio_pace";
+const DEFAULT_PACE = 0.85;
+
+function loadPace(): number {
+  if (typeof window === "undefined") return DEFAULT_PACE;
+  try {
+    const v = Number(window.localStorage.getItem(PACE_KEY));
+    if (PACES.some((p) => p.value === v)) return v;
+  } catch {
+    /* ignore */
+  }
+  return DEFAULT_PACE;
+}
+
+function applyPace(audio: HTMLAudioElement, pace: number) {
+  audio.playbackRate = pace;
+  try {
+    audio.preservesPitch = true;
+    // Older WebKit
+    (audio as HTMLAudioElement & { webkitPreservesPitch?: boolean }).webkitPreservesPitch = true;
+  } catch {
+    /* pitch preservation is best-effort */
+  }
+}
+
 export function AudioPlayer({
   text,
   language,
@@ -28,6 +64,21 @@ export function AudioPlayer({
   const [playing, setPlaying] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [readyUrl, setReadyUrl] = useState<string | null>(proAudioUrl ?? null);
+  const [pace, setPace] = useState<number>(DEFAULT_PACE);
+
+  useEffect(() => {
+    setPace(loadPace());
+  }, []);
+
+  function changePace(value: number) {
+    setPace(value);
+    try {
+      window.localStorage.setItem(PACE_KEY, String(value));
+    } catch {
+      /* ignore */
+    }
+    if (audioRef.current) applyPace(audioRef.current, value);
+  }
 
   useEffect(() => {
     setReadyUrl(proAudioUrl ?? null);
@@ -129,6 +180,8 @@ export function AudioPlayer({
       audioRef.current.src = url;
     }
 
+    applyPace(audioRef.current, pace);
+
     try {
       await audioRef.current.play();
       setPlaying(true);
@@ -164,6 +217,28 @@ export function AudioPlayer({
           </>
         )}
       </button>
+      <div
+        className="flex items-center justify-center gap-1"
+        role="group"
+        aria-label="Reading pace"
+      >
+        <span className="mr-1 text-[11px] text-ink-faint">Pace</span>
+        {PACES.map((p) => (
+          <button
+            key={p.value}
+            type="button"
+            onClick={() => changePace(p.value)}
+            aria-pressed={pace === p.value}
+            className={`rounded-md px-2 py-0.5 text-[11px] font-medium transition ${
+              pace === p.value
+                ? "bg-ink/80 text-surface-2"
+                : "text-ink-faint hover:text-ink-soft"
+            }`}
+          >
+            {p.label}
+          </button>
+        ))}
+      </div>
       {error && (
         <p className="text-[12px] text-ink-soft" role="status">
           {error}

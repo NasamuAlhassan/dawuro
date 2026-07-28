@@ -88,20 +88,20 @@ export function ReceiveClient({
           <VerseCard verse={verse} />
         ) : (
           <article className="dawuro-card">
-            <div className="flex items-start justify-between gap-3 border-b border-line px-4 py-3 sm:px-5">
+            <div className="flex items-baseline justify-between gap-3 border-b border-line px-5 py-3.5 sm:px-6">
               <p
-                className="text-[15px] font-semibold tracking-tight text-ink"
+                className="text-[16px] font-semibold tracking-tight text-ink"
                 style={{ fontFamily: "var(--font-display), serif" }}
               >
                 {humanReference}
               </p>
-              <span className="shrink-0 text-[11px] font-medium text-ink-faint">
-                English
+              <span className="shrink-0 rounded-md bg-ink/5 px-1.5 py-0.5 text-[10px] font-semibold tracking-[0.06em] text-ink-soft">
+                BSB
               </span>
             </div>
-            <div className="space-y-4 px-4 py-4 sm:px-5 sm:py-5">
+            <div className="space-y-5 px-5 py-6 sm:px-6 sm:py-7">
               <p
-                className="text-[1.125rem] leading-[1.7] text-ink"
+                className="text-[1.3rem] leading-[1.85] tracking-[0.002em] text-ink"
                 style={{ fontFamily: "var(--font-verse), serif" }}
                 lang="en"
               >

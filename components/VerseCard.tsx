@@ -10,6 +10,11 @@ type Props = {
   showAudio?: boolean;
 };
 
+/**
+ * The reading surface — styled after the way a Bible app presents a
+ * passage: reference + version up top, the local text large and unhurried,
+ * English as the quiet companion underneath.
+ */
 export function VerseCard({
   verse,
   className = "",
@@ -20,22 +25,23 @@ export function VerseCard({
 
   const lang = getLanguage(verse.localLanguageId || local.languageId);
   const fromKhaya = verse.localFromKhaya || local.source === "khaya";
+  const versionTag = fromKhaya ? "Khaya" : lang.abbreviation || lang.label;
 
   return (
     <article className={`dawuro-card ${className}`}>
-      <div className="flex items-start justify-between gap-3 border-b border-line px-4 py-3 sm:px-5">
+      <div className="flex items-baseline justify-between gap-3 border-b border-line px-5 py-3.5 sm:px-6">
         <p
-          className="text-[15px] font-semibold tracking-tight text-ink"
+          className="text-[16px] font-semibold tracking-tight text-ink"
           style={{ fontFamily: "var(--font-display), serif" }}
         >
           {verse.humanReference}
         </p>
-        <span className="shrink-0 text-[11px] font-medium text-ink-faint">
-          {lang.label}
+        <span className="shrink-0 rounded-md bg-ink/5 px-1.5 py-0.5 text-[10px] font-semibold tracking-[0.06em] text-ink-soft">
+          {versionTag}
         </span>
       </div>
 
-      <div className="space-y-4 px-4 py-4 sm:px-5 sm:py-5">
+      <div className="space-y-5 px-5 py-6 sm:px-6 sm:py-7">
         {(verse.proxyNote || fromKhaya) && (
           <p className="text-[11px] leading-snug text-ink-faint">
             {verse.proxyNote ||
@@ -44,20 +50,25 @@ export function VerseCard({
         )}
 
         <p
-          className="text-[1.125rem] leading-[1.7] text-ink"
+          className="text-[1.3rem] leading-[1.85] tracking-[0.002em] text-ink"
           style={{ fontFamily: "var(--font-verse), serif" }}
           lang={lang.htmlLang}
         >
           {local.text}
         </p>
 
-        <p
-          className="border-t border-line pt-4 text-[0.9375rem] leading-[1.65] text-ink-soft"
-          style={{ fontFamily: "var(--font-verse), serif" }}
-          lang="en"
-        >
-          {verse.english.text}
-        </p>
+        <div className="border-t border-line pt-5">
+          <p className="mb-1.5 text-[10px] font-semibold uppercase tracking-[0.1em] text-ink-faint">
+            English · BSB
+          </p>
+          <p
+            className="text-[0.95rem] leading-[1.75] text-ink-soft"
+            style={{ fontFamily: "var(--font-verse), serif" }}
+            lang="en"
+          >
+            {verse.english.text}
+          </p>
+        </div>
 
         {showAudio && local.text && (
           <AudioPlayer
