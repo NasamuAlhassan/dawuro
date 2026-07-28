@@ -5,7 +5,7 @@ import { usePathname } from "next/navigation";
 import type { ReactNode } from "react";
 import { getLanguage } from "@/lib/languages";
 import { useApp } from "@/lib/app-context";
-import { IconCalendar, IconHome, IconSliders } from "@/components/ui/Icons";
+import { IconHome, IconSliders, IconTopics } from "@/components/ui/Icons";
 
 const TABS = [
   {
@@ -15,10 +15,10 @@ const TABS = [
     Icon: IconHome,
   },
   {
-    href: "/today",
-    label: "Today",
-    match: (p: string) => p.startsWith("/today"),
-    Icon: IconCalendar,
+    href: "/topics",
+    label: "Topics",
+    match: (p: string) => p.startsWith("/topics"),
+    Icon: IconTopics,
   },
   {
     href: "/settings",

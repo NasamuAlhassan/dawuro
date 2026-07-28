@@ -1,9 +1,9 @@
 "use client";
 
-import { forwardRef } from "react";
+import { forwardRef, useEffect, useState } from "react";
 import type { VerseResult } from "@/lib/types";
 import { getLanguage } from "@/lib/languages";
-import { receiveUrlDisplay } from "@/lib/share";
+import { receiveUrlDisplay, receiveUrlDisplayStatic } from "@/lib/share";
 
 type Props = {
   verse: VerseResult;
@@ -37,6 +37,15 @@ export const ShareableCard = forwardRef<HTMLDivElement, Props>(
     const lang = getLanguage(verse.localLanguageId || local?.languageId);
     const fromKhaya = verse.localFromKhaya || local?.source === "khaya";
     const invite = lang.khayaTts ? "Hear it aloud" : "Read it + reply";
+
+    // Server and first client render agree (env-only base); the full
+    // origin-aware link swaps in after mount — no hydration mismatch.
+    const [linkDisplay, setLinkDisplay] = useState(() =>
+      receiveUrlDisplayStatic(verse),
+    );
+    useEffect(() => {
+      setLinkDisplay(receiveUrlDisplay(verse));
+    }, [verse]);
 
     return (
       <div
@@ -177,7 +186,7 @@ export const ShareableCard = forwardRef<HTMLDivElement, Props>(
               fontFamily: '"Noto Sans", sans-serif',
             }}
           >
-            {invite} · {receiveUrlDisplay(verse)}
+            {invite} · {linkDisplay}
           </div>
         </div>
       </div>

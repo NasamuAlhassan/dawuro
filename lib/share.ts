@@ -34,3 +34,14 @@ export function receiveUrlDisplay(verse: VerseResult): string {
   const url = receiveUrl(verse);
   return url.replace(/^https?:\/\//, "");
 }
+
+/**
+ * Hydration-safe variant: uses only the build-time env base, which is
+ * identical in server and client renders. Components that server-render
+ * the link should start from this and upgrade to receiveUrlDisplay()
+ * after mount.
+ */
+export function receiveUrlDisplayStatic(verse: VerseResult): string {
+  const base = process.env.NEXT_PUBLIC_APP_URL?.trim().replace(/\/$/, "") || "";
+  return `${base}${receivePath(verse)}`.replace(/^https?:\/\//, "");
+}

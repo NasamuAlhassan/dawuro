@@ -36,6 +36,17 @@ export function IconCalendar({ className, size = 22, solid }: IconProps) {
   );
 }
 
+export function IconTopics({ className, size = 22, solid }: IconProps) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" className={className} aria-hidden {...defaults}>
+      <rect x="4" y="4" width="7" height="7" rx="1.5" fill={solid ? "currentColor" : "none"} />
+      <rect x="13" y="4" width="7" height="7" rx="1.5" fill={solid ? "currentColor" : "none"} />
+      <rect x="4" y="13" width="7" height="7" rx="1.5" fill={solid ? "currentColor" : "none"} />
+      <rect x="13" y="13" width="7" height="7" rx="1.5" fill={solid ? "currentColor" : "none"} />
+    </svg>
+  );
+}
+
 export function IconSliders({ className, size = 22 }: IconProps) {
   return (
     <svg width={size} height={size} viewBox="0 0 24 24" className={className} aria-hidden {...defaults}>

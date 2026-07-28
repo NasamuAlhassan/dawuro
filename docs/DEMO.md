@@ -30,8 +30,10 @@ That round trip — verse out, verse back, same chat — is the product. End the
 
 Optional: speak in Twi "me yɛ suro" (input language Twi) for the oral demo.
 
-## Today tab
-Open **Today** → Verse of the Day → Share as voice note.
+## Daily verse + Topics
+The Verse of the Day now greets you at the top of **Home** — playable and
+shareable with zero taps. **Topics** (middle tab) browses the eleven curated
+feelings; each opens its verse inline with audio and share.
 
 ## Health check
 ```bash
