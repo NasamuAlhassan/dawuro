@@ -57,7 +57,13 @@ function withTimeout<T>(
 ): Promise<T> {
   return new Promise((resolve, reject) => {
     const t = setTimeout(
-      () => reject(new KhayaError(`${label} timed out after ${ms}ms`, 504)),
+      () =>
+        reject(
+          new KhayaError(
+            `${label} took too long — please try again in a moment.`,
+            504,
+          ),
+        ),
       ms,
     );
     promise
@@ -112,14 +118,17 @@ export async function synthesizeSpeech(
   );
 
   if (!res.ok) {
+    // Raw upstream bodies (Cloudflare challenges, Azure outage pages) are
+    // for the server log only — users get a calm, human sentence.
     let detail = "";
     try {
       detail = await res.text();
     } catch {
       /* ignore */
     }
+    console.warn(`[khaya] TTS ${res.status} for "${lang}"`, detail.slice(0, 300));
     throw new KhayaError(
-      `Khaya TTS failed (${res.status})${detail ? `: ${detail.slice(0, 200)}` : ""}`,
+      "The voice service is unavailable right now — you can still read the verse. Please try again in a few minutes.",
       res.status >= 400 && res.status < 600 ? res.status : 502,
     );
   }
@@ -127,8 +136,9 @@ export async function synthesizeSpeech(
   const arrayBuffer = await res.arrayBuffer();
   const buffer = Buffer.from(arrayBuffer);
   if (buffer.byteLength < 100) {
+    console.warn(`[khaya] TTS returned empty audio for "${lang}"`);
     throw new KhayaError(
-      `Khaya TTS returned empty or invalid audio for language "${lang}".`,
+      "The voice service returned no audio — you can still read the verse. Please try again in a few minutes.",
       502,
     );
   }
@@ -193,8 +203,9 @@ async function translateChunk(
   );
 
   if (!res.ok) {
+    console.warn(`[khaya] translate ${res.status} for ${langPair}`);
     throw new KhayaError(
-      `Khaya translate failed (${res.status}) for ${langPair}`,
+      `the ${langPair} translation service is unavailable right now`,
       res.status,
     );
   }
@@ -275,8 +286,12 @@ export async function transcribeSpeech(
     } catch {
       /* ignore */
     }
+    console.warn(
+      `[khaya] ASR ${res.status} for "${languageCode}"`,
+      detail.slice(0, 300),
+    );
     throw new KhayaError(
-      `Khaya ASR failed (${res.status})${detail ? `: ${detail.slice(0, 200)}` : ""}`,
+      "We couldn't reach the speech service — please try again, or type your feeling instead.",
       res.status >= 400 && res.status < 600 ? res.status : 502,
     );
   }
