@@ -162,9 +162,10 @@ export default async function Image({
         ? "Tap to hear it aloud"
         : "Tap to read + reply with yours";
 
-  const [regular, bold] = await Promise.all([
+  const [regular, bold, serifBold] = await Promise.all([
     loadFont("Noto+Sans:wght@400"),
     loadFont("Noto+Sans:wght@700"),
+    loadFont("Noto+Serif:wght@700"),
   ]);
 
   const fonts: NonNullable<
@@ -176,6 +177,23 @@ export default async function Image({
   if (bold) {
     fonts.push({ name: "Noto Sans", data: bold, weight: 700, style: "normal" });
   }
+  if (serifBold) {
+    fonts.push({ name: "Noto Serif", data: serifBold, weight: 700, style: "normal" });
+  }
+  const serifFamily = serifBold ? "Noto Serif" : fonts.length ? "Noto Sans" : "serif";
+
+  // Palette shared with the shareable PNG: deep fired clay, cream
+  // Scripture, gong-gold accents — one family in the chat thread.
+  const GOLD = "#C4922A";
+  const arc = (size: number, opacity: number) => ({
+    position: "absolute" as const,
+    top: -size / 2 - 40,
+    right: -size / 2 - 40,
+    width: size,
+    height: size,
+    borderRadius: 9999,
+    border: `2.5px solid rgba(196, 146, 42, ${opacity})`,
+  });
 
   return new ImageResponse(
     (
@@ -186,13 +204,19 @@ export default async function Image({
           display: "flex",
           flexDirection: "column",
           justifyContent: "space-between",
-          padding: "52px 64px",
-          background: "#FAF6F0",
-          color: "#1F1A14",
+          padding: "48px 64px",
+          background:
+            "linear-gradient(150deg, #2B1109 0%, #3A150A 55%, #4A1B0C 100%)",
+          color: "#FAF3E7",
           fontFamily: fonts.length ? "Noto Sans" : "sans-serif",
-          borderTop: "10px solid #9E3414",
+          position: "relative",
+          overflow: "hidden",
         }}
       >
+        <div style={arc(280, 0.32)} />
+        <div style={arc(440, 0.2)} />
+        <div style={arc(600, 0.1)} />
+
         <div
           style={{
             display: "flex",
@@ -202,37 +226,53 @@ export default async function Image({
         >
           <div
             style={{
-              fontSize: 28,
+              fontSize: 26,
               fontWeight: 700,
-              letterSpacing: 3,
-              color: "#9E3414",
+              letterSpacing: 7,
+              color: GOLD,
             }}
           >
             {wordmark}
           </div>
-          <div style={{ fontSize: 24, color: "#6A5E52" }}>{langLine}</div>
+          <div style={{ fontSize: 23, color: "#C9B499" }}>{langLine}</div>
         </div>
 
         <div
           style={{
             display: "flex",
             flexDirection: "column",
-            gap: 22,
+            gap: 18,
             flexGrow: 1,
             justifyContent: "center",
-            paddingTop: 18,
-            paddingBottom: 18,
+            paddingTop: 16,
+            paddingBottom: 16,
           }}
         >
-          <div style={{ fontSize: 32, fontWeight: 700, color: "#9E3414" }}>
+          <div
+            style={{
+              fontSize: 32,
+              fontWeight: 700,
+              color: "#E0B457",
+              fontFamily: serifFamily,
+            }}
+          >
             {reference}
           </div>
           <div
             style={{
-              fontSize: localText.length > 110 ? 36 : 44,
-              lineHeight: 1.35,
+              width: 64,
+              height: 3,
+              background: GOLD,
+              opacity: 0.6,
+            }}
+          />
+          <div
+            style={{
+              fontSize: localText.length > 110 ? 35 : 43,
+              lineHeight: 1.4,
               fontWeight: 700,
-              color: "#1F1A14",
+              color: "#FAF3E7",
+              fontFamily: serifFamily,
             }}
           >
             {localText}
@@ -240,11 +280,11 @@ export default async function Image({
           {englishText ? (
             <div
               style={{
-                fontSize: 24,
+                fontSize: 23,
                 lineHeight: 1.4,
-                color: "#4A4036",
-                borderTop: "1px solid #DDD0BE",
-                paddingTop: 16,
+                color: "#C9B499",
+                borderTop: "1px solid rgba(217, 198, 174, 0.25)",
+                paddingTop: 14,
               }}
             >
               {englishText}
@@ -257,12 +297,12 @@ export default async function Image({
             display: "flex",
             alignItems: "center",
             justifyContent: "space-between",
-            borderTop: "1px solid #DDD0BE",
-            paddingTop: 20,
+            borderTop: "1px solid rgba(217, 198, 174, 0.25)",
+            paddingTop: 18,
           }}
         >
-          <div style={{ fontSize: 18, color: "#6A5E52" }}>{attribution}</div>
-          <div style={{ fontSize: 20, fontWeight: 700, color: "#9E3414" }}>
+          <div style={{ fontSize: 18, color: "#B49B7D" }}>{attribution}</div>
+          <div style={{ fontSize: 20, fontWeight: 700, color: "#E0B457" }}>
             {hint}
           </div>
         </div>
