@@ -14,20 +14,42 @@ import {
   usesKhayaLocalText,
 } from "@/lib/languages";
 
+/**
+ * The Kusaal probe spends a paid Khaya translate call, so its result is
+ * cached per warm instance — health checks must never drain API quota.
+ * Successes cache for 6 h; failures retry after 10 min.
+ */
+type Probe = { ok: boolean; message: string };
+let probeCache: { at: number; tw: Probe; kus: Probe } | null = null;
+const PROBE_OK_TTL_MS = 6 * 60 * 60 * 1000;
+const PROBE_FAIL_TTL_MS = 10 * 60 * 1000;
+
 export async function GET() {
   const missing = getMissingEnvKeys();
   const coreOk = hasCoreKeys();
 
-  let twiAccess: { ok: boolean; message: string } | null = null;
-  let khayaLocal: { ok: boolean; message: string } | null = null;
+  let twiAccess: Probe | null = null;
+  let khayaLocal: Probe | null = null;
 
   if (process.env.YVP_APP_KEY?.trim()) {
-    const [tw, kus] = await Promise.all([
-      probeLanguageAccess("tw"),
-      probeLanguageAccess("kus"),
-    ]);
-    twiAccess = { ok: tw.ok, message: tw.message };
-    khayaLocal = { ok: kus.ok, message: kus.message };
+    const age = probeCache ? Date.now() - probeCache.at : Infinity;
+    const ttl =
+      probeCache && probeCache.tw.ok && probeCache.kus.ok
+        ? PROBE_OK_TTL_MS
+        : PROBE_FAIL_TTL_MS;
+    if (!probeCache || age > ttl) {
+      const [tw, kus] = await Promise.all([
+        probeLanguageAccess("tw"),
+        probeLanguageAccess("kus"),
+      ]);
+      probeCache = {
+        at: Date.now(),
+        tw: { ok: tw.ok, message: tw.message },
+        kus: { ok: kus.ok, message: kus.message },
+      };
+    }
+    twiAccess = probeCache.tw;
+    khayaLocal = probeCache.kus;
   }
 
   return NextResponse.json({
