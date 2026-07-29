@@ -39,7 +39,8 @@ function groupByRegion(list: LanguageConfig[]) {
     "other",
   ];
   const map = new Map<LanguageRegion, LanguageConfig[]>();
-  for (const lang of list) {
+  // English is pinned above the regions, not buried under "Other".
+  for (const lang of list.filter((l) => l.id !== "en")) {
     const arr = map.get(lang.region) || [];
     arr.push(lang);
     map.set(lang.region, arr);
@@ -57,11 +58,37 @@ export function LanguageSetting({ value, onChange }: Props) {
       <div>
         <p className="text-[13px] font-medium text-ink">Scripture language</p>
         <p className="mt-1 text-[12px] leading-relaxed text-ink-soft">
-          English always shows alongside. Ghanaian languages first. Published
-          Bibles from YouVersion when available; otherwise Khaya for local
-          text.
+          Choose English alone, or a local language with English alongside.
+          Published Bibles from YouVersion when available; otherwise Khaya
+          for local text.
         </p>
       </div>
+
+      <button
+        type="button"
+        role="option"
+        aria-selected={value === "en"}
+        onClick={() => {
+          onChange("en");
+          try {
+            window.localStorage.setItem(STORAGE_KEY_LANGUAGE, "en");
+          } catch {
+            /* ignore */
+          }
+        }}
+        className={`inline-flex w-fit items-center gap-1.5 rounded-md px-3 py-2 text-[13px] font-semibold transition ${
+          value === "en"
+            ? "bg-ink text-surface-2"
+            : "bg-surface-2 text-ink-soft ring-1 ring-line hover:text-ink"
+        }`}
+        title="Berean Standard Bible · spoken with your device's English voice"
+      >
+        English
+        <IconSpeaker
+          size={12}
+          className={value === "en" ? "opacity-80" : "opacity-50"}
+        />
+      </button>
 
       {groups.map(({ region, languages }) => (
         <div key={region} className="space-y-2">

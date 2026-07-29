@@ -57,6 +57,8 @@ export function AudioPlayer({
   const lang = getLanguage(language);
   const playLabel = label || `Play in ${lang.label}`;
   const canTts = Boolean(lang.khayaTts);
+  // English speaks with the browser's own voice — free, instant, offline.
+  const webSpeech = lang.id === "en";
 
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const objectUrlRef = useRef<string | null>(null);
@@ -97,15 +99,40 @@ export function AudioPlayer({
   useEffect(() => {
     return () => {
       if (objectUrlRef.current) URL.revokeObjectURL(objectUrlRef.current);
+      if (typeof window !== "undefined" && "speechSynthesis" in window) {
+        window.speechSynthesis.cancel();
+      }
     };
   }, []);
 
-  if (!canTts && !proAudioUrl) {
+  if (!canTts && !webSpeech && !proAudioUrl) {
     return (
       <p className="text-[12px] text-ink-faint">
         Audio not available for {lang.name} yet.
       </p>
     );
+  }
+
+  function toggleWebSpeech() {
+    if (typeof window === "undefined" || !("speechSynthesis" in window)) {
+      setError("This browser can't speak — you can still read the verse.");
+      return;
+    }
+    const synth = window.speechSynthesis;
+    if (playing) {
+      synth.cancel();
+      setPlaying(false);
+      return;
+    }
+    const utterance = new SpeechSynthesisUtterance(text);
+    utterance.lang = "en-US";
+    utterance.rate = pace;
+    utterance.onend = () => setPlaying(false);
+    utterance.onerror = () => setPlaying(false);
+    synth.cancel();
+    setError(null);
+    setPlaying(true);
+    synth.speak(utterance);
   }
 
   async function ensureAudio(): Promise<string | null> {
@@ -158,6 +185,11 @@ export function AudioPlayer({
   }
 
   async function toggle() {
+    if (webSpeech && !proAudioUrl) {
+      toggleWebSpeech();
+      return;
+    }
+
     if (playing && audioRef.current) {
       audioRef.current.pause();
       setPlaying(false);
@@ -197,22 +229,22 @@ export function AudioPlayer({
         type="button"
         onClick={toggle}
         disabled={loading || !text}
-        className="inline-flex min-h-10 w-full items-center justify-center gap-2 rounded-[var(--radius-sm)] border border-line bg-surface px-4 text-[13px] font-medium text-ink transition hover:border-line-strong hover:bg-surface-2 disabled:cursor-not-allowed disabled:opacity-50"
+        className="inline-flex min-h-14 w-full items-center justify-center gap-2.5 rounded-[var(--radius-sm)] bg-brand px-4 text-[16px] font-semibold text-white transition hover:bg-brand-deep disabled:cursor-not-allowed disabled:opacity-50"
         aria-label={playing ? "Pause audio" : playLabel}
       >
         {loading ? (
           <>
-            <IconLoader size={16} className="dawuro-spin" />
+            <IconLoader size={20} className="dawuro-spin" />
             Preparing audio
           </>
         ) : playing ? (
           <>
-            <IconPause size={16} />
+            <IconPause size={20} />
             Pause
           </>
         ) : (
           <>
-            <IconPlay size={16} />
+            <IconPlay size={20} />
             {playLabel}
           </>
         )}

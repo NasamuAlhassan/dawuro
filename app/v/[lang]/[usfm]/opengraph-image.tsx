@@ -2,7 +2,7 @@ import { ImageResponse } from "next/og";
 import { getBilingualPassage, getEnglishSide } from "@/lib/youversion";
 import {
   getLanguage,
-  hasVoice,
+  hasAnyVoice,
   isLocalLanguageId,
   usesKhayaLocalText,
 } from "@/lib/languages";
@@ -137,7 +137,9 @@ export default async function Image({
     : englishOnly
       ? clamp(englishOnly.text, 145)
       : "Scripture in your language and English — sent by someone who cares.";
-  const englishText = verse ? clamp(verse.english.text, 105) : "";
+  const englishFirst = language.id === "en";
+  const englishText =
+    verse && !englishFirst ? clamp(verse.english.text, 105) : "";
   const attribution = verse
     ? clamp(
         [verse.local.copyright, verse.english.copyright]
@@ -150,15 +152,17 @@ export default async function Image({
       : "";
   const langLine = !loaded
     ? "Dawuro"
-    : khayaLocal
-      ? `English · ${language.nativeName} inside`
-      : `${language.nativeName} · English`;
+    : englishFirst
+      ? "English"
+      : khayaLocal
+        ? `English · ${language.nativeName} inside`
+        : `${language.nativeName} · English`;
   const wordmark = "DAWURO";
   const hint = !loaded
     ? "Tap to open"
     : khayaLocal
       ? `Tap to read it in ${language.label}`
-      : hasVoice(language)
+      : hasAnyVoice(language)
         ? "Tap to hear it aloud"
         : "Tap to read + reply with yours";
 

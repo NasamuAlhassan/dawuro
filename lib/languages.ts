@@ -10,6 +10,8 @@
  */
 
 export type LocalLanguageId =
+  // English-first mode — BSB alone, spoken with the browser's voice
+  | "en"
   // Ghana — primary
   | "tw"
   | "ak"
@@ -90,6 +92,22 @@ const AKAN_ASANTE = {
 } as const;
 
 export const LANGUAGES: Record<LocalLanguageId, LanguageConfig> = {
+  // ─── English-first ───────────────────────────────────────────────
+  en: {
+    id: "en",
+    label: "English",
+    name: "English",
+    nativeName: "English",
+    region: "other",
+    bibleId: 3034,
+    abbreviation: "BSB",
+    title: "Berean Standard Bible",
+    htmlLang: "en",
+    yvpTag: "en",
+    // No Khaya voice needed — the browser's built-in English voice speaks.
+    feelingPlaceholder: "e.g. I'm anxious about my exams",
+    copyrightFallback: "Berean Standard Bible",
+  },
   // ─── Ghana ───────────────────────────────────────────────────────
   tw: {
     id: "tw",
@@ -378,6 +396,7 @@ export const LANGUAGES: Record<LocalLanguageId, LanguageConfig> = {
 };
 
 export const LANGUAGE_LIST: LanguageConfig[] = [
+  LANGUAGES.en,
   LANGUAGES.tw,
   LANGUAGES.ak,
   LANGUAGES.ee,
@@ -504,6 +523,14 @@ export function getInputLanguage(
 
 export function hasVoice(lang: LanguageConfig): boolean {
   return Boolean(lang.khayaTts);
+}
+
+/**
+ * Can this language be heard at all? Khaya TTS, or — for English —
+ * the browser's built-in speechSynthesis voice (free, offline-capable).
+ */
+export function hasAnyVoice(lang: LanguageConfig): boolean {
+  return hasVoice(lang) || lang.id === "en";
 }
 
 export function hasAsr(lang: LanguageConfig): boolean {

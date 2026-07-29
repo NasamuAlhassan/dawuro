@@ -1,9 +1,9 @@
 "use client";
 
+import Link from "next/link";
 import type { VerseResult } from "@/lib/types";
-import { useApp } from "@/lib/app-context";
-import { VerseFlow } from "@/components/VerseFlow";
 import { VotdHero } from "@/components/VotdHero";
+import { IconMic } from "@/components/ui/Icons";
 
 type Props = {
   initialVotd: VerseResult | null;
@@ -11,35 +11,21 @@ type Props = {
 };
 
 /**
- * Home: Scripture first, questions second.
- * No product explanation — the open verse IS the welcome.
+ * Home: today's verse, big and playable — and one door to the heart.
  */
 export function HomeClient({ initialVotd, initialDay }: Props) {
-  const { language, tradition } = useApp();
-
   return (
-    <div className="flex flex-1 flex-col gap-10">
+    <div className="flex flex-1 flex-col gap-8">
       <VotdHero initialVotd={initialVotd} initialDay={initialDay} />
 
-      <section className="space-y-4">
-        <header className="space-y-1">
-          <h1
-            className="text-[1.75rem] font-semibold leading-[1.2] tracking-[-0.02em] text-ink"
-            style={{ fontFamily: "var(--font-display), serif" }}
-          >
-            What&apos;s on your heart?
-          </h1>
-          <p className="text-[14px] leading-relaxed text-ink-soft">
-            Say it or type it — a verse comes back.
-          </p>
-        </header>
-
-        <VerseFlow
-          scriptureLanguage={language}
-          tradition={tradition}
-          shareLabel="Send on WhatsApp"
-        />
-      </section>
+      <Link
+        href="/heart"
+        className="flex min-h-16 items-center justify-center gap-3 rounded-[var(--radius)] border border-brand/25 bg-surface-2 px-5 text-[17px] font-semibold text-brand transition hover:border-brand/50 hover:bg-surface"
+        style={{ fontFamily: "var(--font-display), serif" }}
+      >
+        <IconMic size={22} />
+        What&apos;s on your heart?
+      </Link>
     </div>
   );
 }

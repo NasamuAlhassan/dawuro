@@ -11,7 +11,7 @@ import {
   slugifyRef,
 } from "@/lib/card";
 import { receiveUrl } from "@/lib/share";
-import { getLanguage } from "@/lib/languages";
+import { getLanguage, hasAnyVoice } from "@/lib/languages";
 import { IconLoader, IconShare } from "@/components/ui/Icons";
 
 type Props = {
@@ -34,7 +34,7 @@ export function ShareSheet({
 
   function shareMessage(): string {
     const fromKhaya = verse.localFromKhaya || local?.source === "khaya";
-    const invite = lang.khayaTts
+    const invite = hasAnyVoice(lang)
       ? `Hear it aloud + reply with a verse of your own:\n${link}`
       : `Read it + reply with a verse of your own:\n${link}`;
     const attribution = fromKhaya

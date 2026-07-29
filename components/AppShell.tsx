@@ -5,7 +5,7 @@ import { usePathname } from "next/navigation";
 import type { ReactNode } from "react";
 import { getLanguage } from "@/lib/languages";
 import { useApp } from "@/lib/app-context";
-import { IconHome, IconSliders, IconTopics } from "@/components/ui/Icons";
+import { IconHeart, IconHome, IconSliders } from "@/components/ui/Icons";
 
 const TABS = [
   {
@@ -15,10 +15,10 @@ const TABS = [
     Icon: IconHome,
   },
   {
-    href: "/topics",
-    label: "Topics",
-    match: (p: string) => p.startsWith("/topics"),
-    Icon: IconTopics,
+    href: "/heart",
+    label: "Heart",
+    match: (p: string) => p.startsWith("/heart"),
+    Icon: IconHeart,
   },
   {
     href: "/settings",
@@ -53,7 +53,9 @@ export function AppShell({ children }: { children: ReactNode }) {
             className="shrink-0 rounded-md border border-line bg-surface-2 px-2.5 py-1.5 text-[12px] font-medium text-ink transition hover:border-line-strong"
           >
             {lang.label}
-            <span className="text-ink-faint"> · EN</span>
+            {lang.id !== "en" && (
+              <span className="text-ink-faint"> · EN</span>
+            )}
           </Link>
         </div>
         <div className="h-px w-full bg-brand/80" aria-hidden />

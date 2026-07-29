@@ -36,13 +36,13 @@ export function IconCalendar({ className, size = 22, solid }: IconProps) {
   );
 }
 
-export function IconTopics({ className, size = 22, solid }: IconProps) {
+export function IconHeart({ className, size = 22, solid }: IconProps) {
   return (
     <svg width={size} height={size} viewBox="0 0 24 24" className={className} aria-hidden {...defaults}>
-      <rect x="4" y="4" width="7" height="7" rx="1.5" fill={solid ? "currentColor" : "none"} />
-      <rect x="13" y="4" width="7" height="7" rx="1.5" fill={solid ? "currentColor" : "none"} />
-      <rect x="4" y="13" width="7" height="7" rx="1.5" fill={solid ? "currentColor" : "none"} />
-      <rect x="13" y="13" width="7" height="7" rx="1.5" fill={solid ? "currentColor" : "none"} />
+      <path
+        d="M12 20.5S4 15.5 4 9.9C4 7.2 6.1 5 8.7 5c1.4 0 2.6.7 3.3 1.7C12.7 5.7 14 5 15.3 5 17.9 5 20 7.2 20 9.9c0 5.6-8 10.6-8 10.6z"
+        fill={solid ? "currentColor" : "none"}
+      />
     </svg>
   );
 }

@@ -26,6 +26,8 @@ export function VerseCard({
   const lang = getLanguage(verse.localLanguageId || local.languageId);
   const fromKhaya = verse.localFromKhaya || local.source === "khaya";
   const versionTag = fromKhaya ? "Khaya" : lang.abbreviation || lang.label;
+  // English-first mode: one column, one attribution — no duplicate text.
+  const englishOnly = lang.id === "en";
 
   return (
     <article className={`dawuro-card ${className}`}>
@@ -57,18 +59,20 @@ export function VerseCard({
           {local.text}
         </p>
 
-        <div className="border-t border-line pt-5">
-          <p className="mb-1.5 text-[10px] font-semibold uppercase tracking-[0.1em] text-ink-faint">
-            English · BSB
-          </p>
-          <p
-            className="text-[0.95rem] leading-[1.75] text-ink-soft"
-            style={{ fontFamily: "var(--font-verse), serif" }}
-            lang="en"
-          >
-            {verse.english.text}
-          </p>
-        </div>
+        {!englishOnly && (
+          <div className="border-t border-line pt-5">
+            <p className="mb-1.5 text-[10px] font-semibold uppercase tracking-[0.1em] text-ink-faint">
+              English · BSB
+            </p>
+            <p
+              className="text-[0.95rem] leading-[1.75] text-ink-soft"
+              style={{ fontFamily: "var(--font-verse), serif" }}
+              lang="en"
+            >
+              {verse.english.text}
+            </p>
+          </div>
+        )}
 
         {showAudio && local.text && (
           <AudioPlayer
@@ -84,7 +88,7 @@ export function VerseCard({
               {fromKhaya ? `Local: ${local.copyright}` : local.copyright}
             </p>
           )}
-          {verse.english.copyright && (
+          {!englishOnly && verse.english.copyright && (
             <p className="text-[10px] leading-snug text-ink-faint">
               English: {verse.english.copyright}
             </p>

@@ -29,28 +29,15 @@ type ReflectApiResponse = {
   code?: string;
 };
 
-type Props = {
-  /** Language the verse card should arrive in. */
-  scriptureLanguage: LocalLanguageId;
-  /** Tone for the Gloo reflection. */
-  tradition: Tradition;
-  /** Label on the share button once a verse is found. */
-  shareLabel?: string;
-  /** Shown below the input while nothing has been asked yet. */
-  idleHint?: ReactNode;
-};
-
 /**
- * The core conversation turn: feeling in → verse + reflection + share out.
- * Used on Home and on the receive page (/v/...) so every person who is
- * sent a verse can immediately send one back.
+ * The core conversation turn as a hook: feeling in → verse + reflection.
+ * Pages compose their own input UI (Heart's big mic, Receive's inline
+ * form) around the same state machine.
  */
-export function VerseFlow({
-  scriptureLanguage,
-  tradition,
-  shareLabel = "Share on WhatsApp",
-  idleHint,
-}: Props) {
+export function useVerseFlow(
+  scriptureLanguage: LocalLanguageId,
+  tradition: Tradition,
+) {
   const [verse, setVerse] = useState<VerseResult | null>(null);
   const [topicLabel, setTopicLabel] = useState<string | null>(null);
   const [mappingSource, setMappingSource] = useState<string | null>(null);
@@ -62,12 +49,7 @@ export function VerseFlow({
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
-  async function fetchReflection(
-    v: VerseResult,
-    feel: string,
-    trad: Tradition,
-    lang: LocalLanguageId,
-  ) {
+  async function fetchReflection(v: VerseResult, feel: string) {
     setReflectLoading(true);
     setReflection(null);
     setReflectNote(null);
@@ -81,8 +63,8 @@ export function VerseFlow({
             feeling: feel,
             humanReference: v.humanReference,
             englishVerseText: v.english.text,
-            tradition: trad,
-            language: lang,
+            tradition,
+            language: scriptureLanguage,
           }),
         },
         30_000,
@@ -152,7 +134,7 @@ export function VerseFlow({
       setMappingSource(json.mappingSource ?? null);
       setStatus(null);
       setLoading(false);
-      void fetchReflection(json.verse, text, tradition, scriptureLanguage);
+      void fetchReflection(json.verse, text);
     } catch {
       setError("Network error. Check your connection and try again.");
       setStatus(null);
@@ -161,26 +143,42 @@ export function VerseFlow({
     }
   }
 
-  const errInfo = error ? humanizeApiError(error) : null;
+  return {
+    verse,
+    topicLabel,
+    mappingSource,
+    feeling,
+    reflection,
+    reflectNote,
+    reflectLoading,
+    status,
+    error,
+    loading,
+    handleFeeling,
+  };
+}
+
+export type VerseFlowState = ReturnType<typeof useVerseFlow>;
+
+/** Status line, error panel, verse card, reflection, and share actions. */
+export function VerseFlowResults({
+  flow,
+  shareLabel = "Share on WhatsApp",
+}: {
+  flow: VerseFlowState;
+  shareLabel?: string;
+}) {
+  const errInfo = flow.error ? humanizeApiError(flow.error) : null;
 
   return (
-    <div className="flex flex-col gap-6">
-      <section className="dawuro-card p-4 sm:p-5">
-        <FeelingInput
-          onSubmit={(t, inputLang) => handleFeeling(t, inputLang)}
-          loading={loading}
-        />
-      </section>
-
-      {!verse && !loading && !error && idleHint}
-
-      {status && (
+    <>
+      {flow.status && (
         <p
           className="flex items-center gap-2 text-[13px] text-ink-soft"
           aria-live="polite"
         >
           <IconLoader size={14} className="dawuro-spin text-brand" />
-          {status}
+          {flow.status}
         </p>
       )}
 
@@ -206,45 +204,77 @@ export function VerseFlow({
         </div>
       )}
 
-      {verse && (
+      {flow.verse && (
         <div className="dawuro-rise space-y-4">
           <div className="flex flex-wrap items-center gap-2 text-[12px]">
-            {topicLabel && (
+            {flow.topicLabel && (
               <span className="rounded-md bg-ink/5 px-2 py-1 font-medium text-ink">
-                {topicLabel}
+                {flow.topicLabel}
               </span>
             )}
             <span
               className="font-medium text-ink"
               style={{ fontFamily: "var(--font-display), serif" }}
             >
-              {verse.humanReference}
+              {flow.verse.humanReference}
             </span>
-            {feeling && (
-              <span className="text-ink-soft">· for “{feeling}”</span>
+            {flow.feeling && (
+              <span className="text-ink-soft">· for “{flow.feeling}”</span>
             )}
-            {mappingSource === "gloo" && (
+            {flow.mappingSource === "gloo" && (
               <span className="text-[11px] text-ink-faint">
                 · chosen with Gloo AI
               </span>
             )}
           </div>
 
-          <VerseCard verse={verse} />
+          <VerseCard verse={flow.verse} />
 
-          {reflectLoading && (
+          {flow.reflectLoading && (
             <ReflectionBlock reflection={{ english: "" }} loading />
           )}
-          {!reflectLoading && reflection && (
-            <ReflectionBlock reflection={reflection} />
+          {!flow.reflectLoading && flow.reflection && (
+            <ReflectionBlock reflection={flow.reflection} />
           )}
-          {!reflectLoading && !reflection && reflectNote && (
-            <ReflectionSkipped reason={reflectNote} />
+          {!flow.reflectLoading && !flow.reflection && flow.reflectNote && (
+            <ReflectionSkipped reason={flow.reflectNote} />
           )}
 
-          <ShareSheet verse={verse} buttonLabel={shareLabel} />
+          <ShareSheet verse={flow.verse} buttonLabel={shareLabel} />
         </div>
       )}
+    </>
+  );
+}
+
+type Props = {
+  scriptureLanguage: LocalLanguageId;
+  tradition: Tradition;
+  shareLabel?: string;
+  idleHint?: ReactNode;
+};
+
+/** Classic composition: compact input card + results (used on /v receive pages). */
+export function VerseFlow({
+  scriptureLanguage,
+  tradition,
+  shareLabel = "Share on WhatsApp",
+  idleHint,
+}: Props) {
+  const flow = useVerseFlow(scriptureLanguage, tradition);
+
+  return (
+    <div className="flex flex-col gap-6">
+      <section className="dawuro-card p-4 sm:p-5">
+        <FeelingInput
+          onSubmit={(t, inputLang) => void flow.handleFeeling(t, inputLang)}
+          loading={flow.loading}
+        />
+      </section>
+
+      {!flow.verse && !flow.loading && !flow.error && idleHint}
+
+      <VerseFlowResults flow={flow} shareLabel={shareLabel} />
     </div>
   );
 }

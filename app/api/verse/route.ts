@@ -5,6 +5,7 @@ import {
   DEMO_PATH,
   mapFeelingToReference,
   SUGGESTED_FEELINGS,
+  TOPIC_MAP,
   topicForReference,
 } from "@/lib/verses";
 import { clientKey, rateLimit, tooManyRequests } from "@/lib/rate-limit";
@@ -19,12 +20,16 @@ import { isGlooConfigured, mapFeelingWithGloo } from "@/lib/gloo";
 export const runtime = "nodejs";
 
 /**
- * One-tap suggestion chips and the scripted demo phrase stay on the curated
- * map so the filmed/judged path is reproducible; free text goes to Gloo.
+ * One-tap surfaces stay on the curated map so the filmed/judged path is
+ * reproducible: suggestion chips, the Heart page's feeling tiles (topic
+ * labels), and the scripted demo phrase. Free text goes to Gloo.
  */
 const CURATED_FAST_PATH = new Set<string>([
   DEMO_PATH.feeling.toLowerCase(),
   ...SUGGESTED_FEELINGS.map((s) => s.feeling.toLowerCase()),
+  ...TOPIC_MAP.filter((t) => t.id !== "default").map((t) =>
+    t.label.toLowerCase(),
+  ),
 ]);
 
 type Body = {

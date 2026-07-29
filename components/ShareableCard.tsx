@@ -2,7 +2,7 @@
 
 import { forwardRef, useEffect, useState } from "react";
 import type { VerseResult } from "@/lib/types";
-import { getLanguage } from "@/lib/languages";
+import { getLanguage, hasAnyVoice } from "@/lib/languages";
 import { receiveUrlDisplay, receiveUrlDisplayStatic } from "@/lib/share";
 
 type Props = {
@@ -36,7 +36,8 @@ export const ShareableCard = forwardRef<HTMLDivElement, Props>(
     const local = verse.local || verse.twi;
     const lang = getLanguage(verse.localLanguageId || local?.languageId);
     const fromKhaya = verse.localFromKhaya || local?.source === "khaya";
-    const invite = lang.khayaTts ? "Hear it aloud" : "Read it + reply";
+    const englishOnly = lang.id === "en";
+    const invite = hasAnyVoice(lang) ? "Hear it aloud" : "Read it + reply";
 
     // Server and first client render agree (env-only base); the full
     // origin-aware link swaps in after mount — no hydration mismatch.
@@ -99,7 +100,7 @@ export const ShareableCard = forwardRef<HTMLDivElement, Props>(
             DAWURO
           </div>
           <div style={{ fontSize: 22, color: CREAM_SOFT }}>
-            {lang.nativeName} · English
+            {englishOnly ? "English" : `${lang.nativeName} · English`}
           </div>
         </div>
 
@@ -141,18 +142,20 @@ export const ShareableCard = forwardRef<HTMLDivElement, Props>(
               Scripture.
             </div>
           )}
-          <div
-            lang="en"
-            style={{
-              fontSize: 27,
-              lineHeight: 1.6,
-              color: CREAM_SOFT,
-              borderTop: `1px solid ${HAIRLINE}`,
-              paddingTop: 28,
-            }}
-          >
-            {verse.english.text}
-          </div>
+          {!englishOnly && (
+            <div
+              lang="en"
+              style={{
+                fontSize: 27,
+                lineHeight: 1.6,
+                color: CREAM_SOFT,
+                borderTop: `1px solid ${HAIRLINE}`,
+                paddingTop: 28,
+              }}
+            >
+              {verse.english.text}
+            </div>
+          )}
         </div>
 
         <div
@@ -166,7 +169,7 @@ export const ShareableCard = forwardRef<HTMLDivElement, Props>(
         >
           <div style={{ fontSize: 18, lineHeight: 1.5, color: CREAM_FAINT }}>
             {local?.copyright && <div>{local.copyright}</div>}
-            {verse.english.copyright && (
+            {!englishOnly && verse.english.copyright && (
               <div>English: {verse.english.copyright}</div>
             )}
           </div>

@@ -9,6 +9,8 @@ type Props = {
   language: InputLanguageId;
   onTranscript: (text: string) => void;
   disabled?: boolean;
+  /** "hero" renders the large voice-first button for the Heart page. */
+  variant?: "default" | "hero";
 };
 
 type SpeechRecognitionLike = {
@@ -40,7 +42,12 @@ function getSpeechRecognition():
   return w.SpeechRecognition || w.webkitSpeechRecognition || null;
 }
 
-export function MicRecorder({ language, onTranscript, disabled }: Props) {
+export function MicRecorder({
+  language,
+  onTranscript,
+  disabled,
+  variant = "default",
+}: Props) {
   const input = getInputLanguage(language);
   const [listening, setListening] = useState(false);
   const [status, setStatus] = useState<string | null>(null);
@@ -184,6 +191,34 @@ export function MicRecorder({ language, onTranscript, disabled }: Props) {
     }
     if (language === "en") startEnglish();
     else void startKhaya();
+  }
+
+  if (variant === "hero") {
+    return (
+      <div className="flex flex-col items-center gap-3">
+        <button
+          type="button"
+          onClick={toggle}
+          disabled={disabled}
+          aria-pressed={listening}
+          aria-label={listening ? "Stop listening" : `Speak in ${input.label}`}
+          className={`flex h-24 w-24 items-center justify-center rounded-full shadow-[0_10px_30px_rgba(158,52,20,0.25)] transition disabled:opacity-50 ${
+            listening
+              ? "bg-brand text-white ring-8 ring-brand/15"
+              : "bg-brand text-white hover:bg-brand-deep"
+          }`}
+        >
+          {listening ? <IconStop size={34} /> : <IconMic size={42} />}
+        </button>
+        <p
+          className="min-h-[1.25rem] text-center text-[13px] leading-snug text-ink-soft"
+          aria-live="polite"
+        >
+          {status ||
+            (listening ? "Listening… tap to stop" : `Tap and speak in ${input.label}`)}
+        </p>
+      </div>
+    );
   }
 
   return (

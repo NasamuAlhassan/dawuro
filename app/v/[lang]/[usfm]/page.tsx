@@ -8,7 +8,7 @@ import {
 } from "@/lib/youversion";
 import {
   getLanguage,
-  hasVoice,
+  hasAnyVoice,
   isLocalLanguageId,
   usesKhayaLocalText,
   type LanguageConfig,
@@ -74,10 +74,13 @@ export async function generateMetadata({
   }
 
   const { language } = route;
+  const englishOnly = language.id === "en";
   const human = usfmToHuman(route.usfm);
   const fallback: Metadata = {
-    title: `${human} in ${language.label} + English · Dawuro`,
-    description: hasVoice(language)
+    title: englishOnly
+      ? `${human} · English (BSB) · Dawuro`
+      : `${human} in ${language.label} + English · Dawuro`,
+    description: hasAnyVoice(language)
       ? "Someone sent you Scripture. Open it, hear it aloud, and reply with a verse of your own — no app needed."
       : `Someone sent you Scripture. Open it, read it in ${language.label} and English, and reply with a verse of your own — no app needed.`,
   };
@@ -91,6 +94,10 @@ export async function generateMetadata({
       const en = await getEnglishSide(route.usfm);
       title = `${en.humanReference} — sent to you in ${language.label} · Dawuro`;
       description = `${snippet(en.side.text, 150)} — with a ${language.nativeName} rendering to read.`;
+    } else if (englishOnly) {
+      const verse = await getBilingualPassage(route.usfm, language.id);
+      title = `${verse.humanReference} · English (BSB) · Dawuro`;
+      description = snippet(verse.english.text, 180);
     } else {
       const verse = await getBilingualPassage(route.usfm, language.id);
       title = `${verse.humanReference} in ${language.label} + English · Dawuro`;
@@ -156,11 +163,14 @@ export default async function ReceivePage({
     );
   }
 
-  const listenLine = khayaLocal
-    ? `The published English verse, with a ${language.nativeName} rendering to read — then send one back.`
-    : hasVoice(language)
-      ? `A verse in ${language.nativeName} and English. Tap play to hear it in ${language.label} — then send one back.`
-      : `A verse in ${language.nativeName} and English. Read it — then send one back.`;
+  const listenLine =
+    language.id === "en"
+      ? "A verse in English. Tap play to hear it — then send one back."
+      : khayaLocal
+        ? `The published English verse, with a ${language.nativeName} rendering to read — then send one back.`
+        : hasAnyVoice(language)
+          ? `A verse in ${language.nativeName} and English. Tap play to hear it in ${language.label} — then send one back.`
+          : `A verse in ${language.nativeName} and English. Read it — then send one back.`;
 
   return (
     <div className="flex flex-1 flex-col gap-6">
