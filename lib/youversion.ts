@@ -17,6 +17,7 @@ import {
   type LanguageConfig,
 } from "@/lib/languages";
 import { translateFromEnglish } from "@/lib/khaya";
+import { pregeneratedAudioUrl } from "@/lib/pregen-audio";
 
 const YVP_BASE = "https://api.youversion.com/v1";
 
@@ -253,6 +254,9 @@ async function buildBilingualPassage(
       text: cleanPassageText(localPassage.content),
       copyright: localCopyright,
       source: "youversion" as const,
+      // Offline pre-generated audio for the curated set — plays with no
+      // API, so the voice survives vendor outages.
+      audioUrl: pregeneratedAudioUrl(display.id, usfm) ?? undefined,
     };
     const result: VerseResult = {
       reference: usfm,
