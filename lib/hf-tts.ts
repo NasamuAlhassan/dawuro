@@ -11,7 +11,9 @@
 import { createHash } from "crypto";
 import { getCachedAudio, setCachedAudio } from "@/lib/audio";
 
-const HF_BASE = "https://api-inference.huggingface.co/models";
+// The old api-inference.huggingface.co domain is retired; serverless
+// inference now lives behind the HF router.
+const HF_BASE = "https://router.huggingface.co/hf-inference/models";
 const TIMEOUT_MS = 30_000;
 
 /** Dawuro language id → MMS model suffix. Akan family shares `aka`. */
