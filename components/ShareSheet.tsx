@@ -61,7 +61,9 @@ export function ShareSheet({
         /* fall through */
       }
     }
-    if (!local.text?.trim() || !lang.khayaTts) return null;
+    // Try any language a server voice might cover (Khaya or Abena —
+    // including Ghanaian-accented English); a miss just means no clip.
+    if (!local.text?.trim() || !hasAnyVoice(lang)) return null;
 
     const res = await fetch("/api/speak", {
       method: "POST",

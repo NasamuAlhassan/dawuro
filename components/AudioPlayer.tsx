@@ -64,6 +64,10 @@ export function AudioPlayer({
   const objectUrlRef = useRef<string | null>(null);
   const voicesRef = useRef<SpeechSynthesisVoice[]>([]);
   const utteranceRef = useRef<SpeechSynthesisUtterance | null>(null);
+  /** What is currently sounding: a fetched clip or the browser's voice. */
+  const playingSourceRef = useRef<"element" | "synth" | null>(null);
+  /** Once the server has no English clip for us, stop re-asking. */
+  const serverEnglishFailedRef = useRef(false);
   const [loading, setLoading] = useState(false);
   const [playing, setPlaying] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -84,7 +88,9 @@ export function AudioPlayer({
     if (audioRef.current) applyPace(audioRef.current, value);
     // A live utterance can't change rate mid-flight — restart it at the
     // new pace so the chip does something audible immediately.
-    if (webSpeech && playing) speakEnglish(value);
+    if (webSpeech && playing && playingSourceRef.current === "synth") {
+      speakEnglish(value);
+    }
   }
 
   useEffect(() => {
@@ -155,6 +161,7 @@ export function AudioPlayer({
     utterance.onerror = () => setPlaying(false);
     // Keep a reference — Chrome garbage-collects live utterances otherwise.
     utteranceRef.current = utterance;
+    playingSourceRef.current = "synth";
     setError(null);
     setPlaying(true);
     if (synth.speaking || synth.pending) {
@@ -230,18 +237,31 @@ export function AudioPlayer({
   }
 
   async function toggle() {
-    if (webSpeech && !proAudioUrl) {
+    if (playing) {
+      if (playingSourceRef.current === "synth") {
+        window.speechSynthesis?.cancel();
+        setPlaying(false);
+        return;
+      }
+      if (audioRef.current) {
+        audioRef.current.pause();
+        setPlaying(false);
+        return;
+      }
+    }
+
+    // English: prefer the server's Ghanaian-accented voice (Abena) and
+    // fall back to the browser's built-in voice when no clip is served.
+    let url: string | null = null;
+    if (!webSpeech || !serverEnglishFailedRef.current) {
+      url = await ensureAudio();
+    }
+    if (!url && webSpeech) {
+      serverEnglishFailedRef.current = true;
+      setError(null);
       toggleWebSpeech();
       return;
     }
-
-    if (playing && audioRef.current) {
-      audioRef.current.pause();
-      setPlaying(false);
-      return;
-    }
-
-    const url = await ensureAudio();
     if (!url) return;
 
     if (!audioRef.current) {
@@ -261,6 +281,7 @@ export function AudioPlayer({
 
     try {
       await audioRef.current.play();
+      playingSourceRef.current = "element";
       setPlaying(true);
     } catch {
       setError("Tap again to play.");

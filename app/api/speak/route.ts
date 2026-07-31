@@ -1,5 +1,7 @@
 import { NextResponse } from "next/server";
-import { KhayaError, synthesizeSpeech } from "@/lib/khaya";
+import { AbenaError } from "@/lib/abena";
+import { KhayaError } from "@/lib/khaya";
+import { hasServerVoice, synthesize, TtsUnsupportedError } from "@/lib/tts";
 import { getLanguage, isLocalLanguageId } from "@/lib/languages";
 import { clientKey, rateLimit, tooManyRequests } from "@/lib/rate-limit";
 
@@ -46,22 +48,14 @@ export async function POST(req: Request) {
     );
   }
 
-  const langId = isLocalLanguageId(body.language) ? body.language : body.language;
-  const langConfig = isLocalLanguageId(langId)
-    ? getLanguage(langId)
-    : getLanguage("tw");
-  // Prefer configured TTS code; allow raw Khaya codes as fallback attempts
-  const ttsCode =
-    langConfig.khayaTts ||
-    (typeof body.language === "string" &&
-    ["tw", "ee", "ki", "gaa", "dag", "kus", "fat"].includes(body.language)
-      ? body.language
-      : null);
+  const langId = isLocalLanguageId(body.language)
+    ? body.language
+    : getLanguage(body.language).id;
 
-  if (!ttsCode) {
+  if (!hasServerVoice(langId)) {
     return NextResponse.json(
       {
-        error: `Spoken audio is not available for ${langConfig.name} yet. Khaya TTS is wired for Twi, Ewe, and Gĩkũyũ (and will use Twi voice for Fante text when set). You can still read the verse.`,
+        error: `Spoken audio is not available for ${getLanguage(langId).name} yet. You can still read the verse.`,
         code: "TTS_UNSUPPORTED",
       },
       { status: 422 },
@@ -69,20 +63,26 @@ export async function POST(req: Request) {
   }
 
   try {
-    const { buffer, contentType } = await synthesizeSpeech(text, ttsCode);
+    const { buffer, contentType, provider } = await synthesize(text, langId);
     return new NextResponse(new Uint8Array(buffer), {
       status: 200,
       headers: {
         "Content-Type": contentType,
         "Cache-Control": "private, max-age=3600",
-        "X-Dawuro-Audio-Source": "khaya-tts",
-        "X-Dawuro-Language": ttsCode,
+        "X-Dawuro-Audio-Source": `${provider}-tts`,
+        "X-Dawuro-Language": langId,
       },
     });
   } catch (e) {
-    if (e instanceof KhayaError) {
+    if (e instanceof TtsUnsupportedError) {
       return NextResponse.json(
-        { error: e.message, code: "KHAYA_TTS_ERROR" },
+        { error: e.message, code: "TTS_UNSUPPORTED" },
+        { status: 422 },
+      );
+    }
+    if (e instanceof KhayaError || e instanceof AbenaError) {
+      return NextResponse.json(
+        { error: e.message, code: "TTS_ERROR" },
         { status: e.status >= 400 && e.status < 600 ? e.status : 502 },
       );
     }
