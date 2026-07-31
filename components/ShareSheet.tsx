@@ -93,8 +93,9 @@ export function ShareSheet({
       const imageFile = new File([imageBlob], `dawuro-${slug}.png`, {
         type: "image/png",
       });
+      const audioExt = audioBlob?.type.includes("mpeg") ? "mp3" : "wav";
       const audioFile = audioBlob
-        ? new File([audioBlob], `dawuro-${slug}.wav`, {
+        ? new File([audioBlob], `dawuro-${slug}.${audioExt}`, {
             type: audioBlob.type || "audio/wav",
           })
         : null;

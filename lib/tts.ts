@@ -12,10 +12,11 @@
  */
 
 import { synthesizeAbena, isAbenaConfigured, AbenaError } from "@/lib/abena";
+import { synthesizeEdge, EdgeTtsError } from "@/lib/edge-tts";
 import { synthesizeSpeech, KhayaError } from "@/lib/khaya";
 import { getLanguage } from "@/lib/languages";
 
-export type TtsProvider = "abena" | "khaya";
+export type TtsProvider = "abena" | "khaya" | "edge";
 
 export class TtsUnsupportedError extends Error {
   constructor(message: string) {
@@ -76,11 +77,17 @@ export async function synthesize(
     const out = await synthesizeSpeech(text, khayaCode);
     return { ...out, provider: "khaya" };
   };
+  // Edge speaks English only — free, keyless, West African accent.
+  const viaEdge = async (): Promise<TtsResult> => {
+    if (langId !== "en") throw new TtsUnsupportedError("edge: unsupported");
+    const out = await synthesizeEdge(text);
+    return { ...out, provider: "edge" };
+  };
 
   if (primary === "abena") {
-    attempts.push(viaAbena, viaKhaya);
+    attempts.push(viaAbena, viaEdge, viaKhaya);
   } else {
-    attempts.push(viaKhaya, viaAbena);
+    attempts.push(viaKhaya, viaEdge, viaAbena);
   }
 
   let lastError: unknown = null;
@@ -94,7 +101,11 @@ export async function synthesize(
     }
   }
 
-  if (lastError instanceof AbenaError || lastError instanceof KhayaError) {
+  if (
+    lastError instanceof AbenaError ||
+    lastError instanceof KhayaError ||
+    lastError instanceof EdgeTtsError
+  ) {
     throw lastError;
   }
   if (lastError) {
@@ -110,5 +121,8 @@ export async function synthesize(
 
 /** True when some engine could speak this language right now. */
 export function hasServerVoice(langId: string): boolean {
-  return Boolean(abenaVoiceFor(langId) || khayaCodeFor(langId));
+  return (
+    langId === "en" || // Edge always covers English, keyless
+    Boolean(abenaVoiceFor(langId) || khayaCodeFor(langId))
+  );
 }
