@@ -62,6 +62,8 @@ export function AudioPlayer({
 
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const objectUrlRef = useRef<string | null>(null);
+  const voicesRef = useRef<SpeechSynthesisVoice[]>([]);
+  const utteranceRef = useRef<SpeechSynthesisUtterance | null>(null);
   const [loading, setLoading] = useState(false);
   const [playing, setPlaying] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -80,6 +82,9 @@ export function AudioPlayer({
       /* ignore */
     }
     if (audioRef.current) applyPace(audioRef.current, value);
+    // A live utterance can't change rate mid-flight — restart it at the
+    // new pace so the chip does something audible immediately.
+    if (webSpeech && playing) speakEnglish(value);
   }
 
   useEffect(() => {
@@ -105,6 +110,24 @@ export function AudioPlayer({
     };
   }, []);
 
+  // Voices load asynchronously; cache them so play never races the list.
+  useEffect(() => {
+    if (
+      !webSpeech ||
+      typeof window === "undefined" ||
+      !("speechSynthesis" in window)
+    ) {
+      return;
+    }
+    const synth = window.speechSynthesis;
+    const load = () => {
+      voicesRef.current = synth.getVoices();
+    };
+    load();
+    synth.addEventListener?.("voiceschanged", load);
+    return () => synth.removeEventListener?.("voiceschanged", load);
+  }, [webSpeech]);
+
   if (!canTts && !webSpeech && !proAudioUrl) {
     return (
       <p className="text-[12px] text-ink-faint">
@@ -113,26 +136,48 @@ export function AudioPlayer({
     );
   }
 
+  function speakEnglish(rate: number) {
+    const synth = window.speechSynthesis;
+    const utterance = new SpeechSynthesisUtterance(text);
+    // Chrome's remote "Google …" voices silently ignore `rate`, which made
+    // every pace sound identical. A local device voice honors it.
+    const voices = voicesRef.current.length
+      ? voicesRef.current
+      : synth.getVoices();
+    const voice =
+      voices.find((v) => v.lang?.startsWith("en") && v.localService) ||
+      voices.find((v) => v.lang?.startsWith("en"));
+    if (voice) utterance.voice = voice;
+    utterance.lang = voice?.lang || "en-US";
+    utterance.rate = rate;
+    utterance.pitch = 1;
+    utterance.onend = () => setPlaying(false);
+    utterance.onerror = () => setPlaying(false);
+    // Keep a reference — Chrome garbage-collects live utterances otherwise.
+    utteranceRef.current = utterance;
+    setError(null);
+    setPlaying(true);
+    if (synth.speaking || synth.pending) {
+      // cancel() immediately followed by speak() drops the utterance in
+      // Chrome; give the queue one tick to clear.
+      synth.cancel();
+      window.setTimeout(() => synth.speak(utterance), 60);
+    } else {
+      synth.speak(utterance);
+    }
+  }
+
   function toggleWebSpeech() {
     if (typeof window === "undefined" || !("speechSynthesis" in window)) {
       setError("This browser can't speak — you can still read the verse.");
       return;
     }
-    const synth = window.speechSynthesis;
     if (playing) {
-      synth.cancel();
+      window.speechSynthesis.cancel();
       setPlaying(false);
       return;
     }
-    const utterance = new SpeechSynthesisUtterance(text);
-    utterance.lang = "en-US";
-    utterance.rate = pace;
-    utterance.onend = () => setPlaying(false);
-    utterance.onerror = () => setPlaying(false);
-    synth.cancel();
-    setError(null);
-    setPlaying(true);
-    synth.speak(utterance);
+    speakEnglish(pace);
   }
 
   async function ensureAudio(): Promise<string | null> {
