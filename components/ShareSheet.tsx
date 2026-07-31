@@ -11,7 +11,7 @@ import {
   slugifyRef,
 } from "@/lib/card";
 import { receiveUrl } from "@/lib/share";
-import { getLanguage, hasAnyVoice } from "@/lib/languages";
+import { getLanguage, hasAnyVoice, mayHaveServerVoice } from "@/lib/languages";
 import { IconLoader, IconShare } from "@/components/ui/Icons";
 
 type Props = {
@@ -61,9 +61,9 @@ export function ShareSheet({
         /* fall through */
       }
     }
-    // Try any language a server voice might cover (Khaya or Abena —
-    // including Ghanaian-accented English); a miss just means no clip.
-    if (!local.text?.trim() || !hasAnyVoice(lang)) return null;
+    // Try any language a server voice might cover (Khaya, Abena, Edge,
+    // or Meta MMS); a miss just means the share goes without a clip.
+    if (!local.text?.trim() || !mayHaveServerVoice(lang)) return null;
 
     const res = await fetch("/api/speak", {
       method: "POST",

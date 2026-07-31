@@ -533,6 +533,28 @@ export function hasAnyVoice(lang: LanguageConfig): boolean {
   return hasVoice(lang) || lang.id === "en";
 }
 
+/**
+ * Languages some server engine (Khaya, Abena, Edge, or Meta MMS via HF)
+ * may be able to speak. Client-safe and static: the UI shows a play
+ * button and lets /api/speak answer honestly — provider availability is
+ * server-side knowledge (keys, quotas, outages).
+ */
+const SERVER_VOICE_CANDIDATES = new Set([
+  "en",
+  "tw",
+  "ak",
+  "fat",
+  "ee",
+  "ki",
+  "ha",
+  "yo",
+  "sw",
+]);
+
+export function mayHaveServerVoice(lang: LanguageConfig): boolean {
+  return SERVER_VOICE_CANDIDATES.has(lang.id);
+}
+
 export function hasAsr(lang: LanguageConfig): boolean {
   return Boolean(lang.khayaAsr);
 }

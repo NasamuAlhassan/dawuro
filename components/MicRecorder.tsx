@@ -31,6 +31,19 @@ type SpeechRecognitionLike = {
   onend: (() => void) | null;
 };
 
+/** Human messages for Web Speech error codes — silence helps nobody. */
+const SPEECH_ERRORS: Record<string, string> = {
+  "no-speech": "Didn't hear anything — try again, a little closer.",
+  "not-allowed":
+    "Microphone is blocked — allow it in your browser settings, or type.",
+  "service-not-allowed":
+    "This browser blocks its speech service — try Chrome, or type instead.",
+  network:
+    "The browser's speech service didn't respond — try Chrome, or type instead.",
+  "audio-capture": "No microphone found — type instead.",
+  aborted: "Stopped listening.",
+};
+
 function getSpeechRecognition():
   | (new () => SpeechRecognitionLike)
   | null {
@@ -80,27 +93,55 @@ export function MicRecorder({
   const startEnglish = useCallback(() => {
     const SR = getSpeechRecognition();
     if (!SR) {
-      setStatus("Voice not supported — type instead.");
+      setStatus("Voice not supported in this browser — type instead.");
       return;
     }
     const rec = new SR();
     recognitionRef.current = rec;
     rec.lang = input.webSpeech || "en-US";
     rec.continuous = false;
-    rec.interimResults = false;
+    // Capture partial results as they stream in — if the final result
+    // never lands (flaky service, early cut-off), speech isn't lost.
+    rec.interimResults = true;
+
+    let heard = "";
+    let failed = false;
+
     rec.onresult = (ev) => {
-      const t = ev.results[0]?.[0]?.transcript?.trim();
-      if (t) onTranscript(t);
-      setStatus(null);
+      let transcript = "";
+      for (let i = 0; i < ev.results.length; i++) {
+        transcript += ev.results[i]?.[0]?.transcript || "";
+      }
+      heard = transcript.trim();
+      if (heard) {
+        setStatus(`Heard: “${heard.length > 60 ? `${heard.slice(0, 57)}…` : heard}”`);
+      }
     };
-    rec.onerror = () => {
-      setStatus("Couldn't hear that — try typing.");
+    rec.onerror = (ev) => {
+      failed = true;
+      setStatus(SPEECH_ERRORS[ev.error] || "Couldn't hear that — try typing.");
       setListening(false);
     };
-    rec.onend = () => setListening(false);
+    rec.onend = () => {
+      setListening(false);
+      if (heard) {
+        setStatus(null);
+        onTranscript(heard);
+      } else if (!failed) {
+        // Recognition closed without a word and without an error — the
+        // old code left "Listening…" on screen forever here.
+        setStatus("Didn't catch that — tap and try again, or type.");
+      }
+    };
+
     setListening(true);
     setStatus("Listening…");
-    rec.start();
+    try {
+      rec.start();
+    } catch {
+      setListening(false);
+      setStatus("Couldn't start the microphone — type instead.");
+    }
   }, [onTranscript, input.webSpeech]);
 
   const startKhaya = useCallback(async () => {

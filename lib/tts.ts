@@ -13,10 +13,11 @@
 
 import { synthesizeAbena, isAbenaConfigured, AbenaError } from "@/lib/abena";
 import { synthesizeEdge, EdgeTtsError } from "@/lib/edge-tts";
+import { hfCodeFor, synthesizeHf, HfTtsError } from "@/lib/hf-tts";
 import { synthesizeSpeech, KhayaError } from "@/lib/khaya";
 import { getLanguage } from "@/lib/languages";
 
-export type TtsProvider = "abena" | "khaya" | "edge";
+export type TtsProvider = "abena" | "khaya" | "edge" | "hf";
 
 export class TtsUnsupportedError extends Error {
   constructor(message: string) {
@@ -83,11 +84,18 @@ export async function synthesize(
     const out = await synthesizeEdge(text);
     return { ...out, provider: "edge" };
   };
+  // Meta MMS open models via Hugging Face — the last, always-on rung
+  // for local languages (incl. Hausa/Yorùbá/Swahili no vendor covers).
+  const viaHf = async (): Promise<TtsResult> => {
+    if (!hfCodeFor(langId)) throw new TtsUnsupportedError("hf: unsupported");
+    const out = await synthesizeHf(text, langId);
+    return { ...out, provider: "hf" };
+  };
 
   if (primary === "abena") {
-    attempts.push(viaAbena, viaEdge, viaKhaya);
+    attempts.push(viaAbena, viaEdge, viaKhaya, viaHf);
   } else {
-    attempts.push(viaKhaya, viaEdge, viaAbena);
+    attempts.push(viaKhaya, viaEdge, viaAbena, viaHf);
   }
 
   let lastError: unknown = null;
@@ -104,7 +112,8 @@ export async function synthesize(
   if (
     lastError instanceof AbenaError ||
     lastError instanceof KhayaError ||
-    lastError instanceof EdgeTtsError
+    lastError instanceof EdgeTtsError ||
+    lastError instanceof HfTtsError
   ) {
     throw lastError;
   }
@@ -123,6 +132,6 @@ export async function synthesize(
 export function hasServerVoice(langId: string): boolean {
   return (
     langId === "en" || // Edge always covers English, keyless
-    Boolean(abenaVoiceFor(langId) || khayaCodeFor(langId))
+    Boolean(abenaVoiceFor(langId) || khayaCodeFor(langId) || hfCodeFor(langId))
   );
 }

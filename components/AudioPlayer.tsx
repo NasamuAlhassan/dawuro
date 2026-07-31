@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import type { LocalLanguageId } from "@/lib/languages";
-import { getLanguage } from "@/lib/languages";
+import { getLanguage, mayHaveServerVoice } from "@/lib/languages";
 import { IconLoader, IconPause, IconPlay } from "@/components/ui/Icons";
 
 type Props = {
@@ -56,8 +56,9 @@ export function AudioPlayer({
 }: Props) {
   const lang = getLanguage(language);
   const playLabel = label || `Play in ${lang.label}`;
-  const canTts = Boolean(lang.khayaTts);
-  // English speaks with the browser's own voice — free, instant, offline.
+  // Some server engine may cover this language; /api/speak decides live.
+  const canTts = mayHaveServerVoice(lang);
+  // English can always fall back to the browser's own voice — offline too.
   const webSpeech = lang.id === "en";
 
   const audioRef = useRef<HTMLAudioElement | null>(null);
