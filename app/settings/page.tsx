@@ -2,6 +2,7 @@
 
 import { LanguageSetting } from "@/components/LanguageSetting";
 import { TraditionSetting } from "@/components/TraditionSetting";
+import { NotificationSetting } from "@/components/NotificationSetting";
 import { useApp } from "@/lib/app-context";
 
 export default function SettingsPage() {
@@ -17,12 +18,16 @@ export default function SettingsPage() {
           Settings
         </h1>
         <p className="max-w-[36ch] text-[14px] leading-relaxed text-ink-soft">
-          Language of Scripture and tone of reflections.
+          Language of Scripture, daily reminders, and tone of reflections.
         </p>
       </header>
 
       <section className="dawuro-card p-4 sm:p-5">
         <LanguageSetting value={language} onChange={setLanguage} />
+      </section>
+
+      <section className="dawuro-card p-4 sm:p-5">
+        <NotificationSetting />
       </section>
 
       <section className="dawuro-card space-y-3 p-4 sm:p-5">
